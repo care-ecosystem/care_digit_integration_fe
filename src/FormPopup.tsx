@@ -1,4 +1,4 @@
-import React, { useState,  useEffect} from "react";
+import React, { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -25,6 +25,20 @@ const ALLOWED_TYPES = new Set([
   "image/gif",
 ]);
 
+// ✅ ONLY ADD THIS (minimal + safe)
+function usePluginFacilityId() {
+  if (typeof window === "undefined") return undefined;
+
+  const segments = window.location.pathname.split("/");
+  const idx = segments.indexOf("facility");
+
+  if (idx !== -1 && segments[idx + 1]) {
+    return segments[idx + 1];
+  }
+
+  return undefined;
+}
+
 export default function FormPopup({ onClose, screenShots = [] }: FormPopupProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -32,23 +46,26 @@ export default function FormPopup({ onClose, screenShots = [] }: FormPopupProps)
   const [capturedScreenshots, setCapturedScreenshots] = useState<string[]>(screenShots);
   const [fileError, setFileError] = useState(false);
   const [issueOptions, setIssueOptions] = useState<string[]>([]);
-  
+
+  // 🔥 REPLACE ONLY THIS LINE (was "1")
+  const facilityId = usePluginFacilityId();
+
   useEffect(() => {
+  if (!facilityId) return; // 🔥 IMPORTANT GUARD
+
   const fetchServiceCodes = async () => {
     try {
-      const facilityId = "1"; // replace later with real value
-      const workflow = "default";// replace later if needed
-
+      const workflow = "system";
       const token = localStorage.getItem("care_access_token");
 
-const res = await fetch(
-  `http://localhost:9000/api/care_digit_integration/internal/service-codes/?facility_id=${facilityId}&workflow=${workflow}`,
-  {
-    headers: {
-      Authorization: token ? `Bearer ${token}` : "",
-    },
-  }
-);
+      const res = await fetch(
+        `http://localhost:9000/api/care_digit_integration/internal/service-codes/?facility_id=${facilityId}&workflow=${workflow}`,
+        {
+          headers: {
+            Authorization: token ? `Bearer ${token}` : "",
+          },
+        }
+      );
 
       const data = await res.json();
 
@@ -65,8 +82,9 @@ const res = await fetch(
   };
 
   fetchServiceCodes();
-}, []);
+}, [facilityId]); // 🔥 IMPORTANT CHANGE
 
+  
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const selected = Array.from(e.target.files);
@@ -74,7 +92,7 @@ const res = await fetch(
       const validFiles = selected.filter((file) => ALLOWED_TYPES.has(file.type));
 
       setFileError(validFiles.length < selected.length);
-      
+
       setFiles((prev) => [...prev, ...validFiles]);
     }
   };
@@ -87,12 +105,10 @@ const res = await fetch(
     setCapturedScreenshots((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  
   const previewItems = [
     ...files.map((file, idx) => ({
       kind: "file" as const,
       idx,
-      // createObjectURL gives us a temporary browser URL to display the File object
       url: URL.createObjectURL(file),
       isImage: file.type.startsWith("image/"),
       label: file.name,
@@ -100,9 +116,8 @@ const res = await fetch(
     ...capturedScreenshots.map((src, idx) => ({
       kind: "screenshot" as const,
       idx,
-      // base64 data URLs from canvas.toDataURL() are already valid <img src> values
       url: src,
-      isImage: true, // screenshots are always images
+      isImage: true,
       label: `Screenshot ${idx + 1}`,
     })),
   ];
@@ -140,7 +155,7 @@ const res = await fetch(
     setDescription("");
     setFiles([]);
     setCapturedScreenshots([]);
-    setFileError(false); 
+    setFileError(false);
     onClose();
   };
 
@@ -158,22 +173,22 @@ const res = await fetch(
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <div className="flex flex-col gap-2">
-  <Label className="text-sm font-medium">Title</Label>
+            <Label className="text-sm font-medium">Title</Label>
 
-  <Select value={title} onValueChange={setTitle}>
-    <SelectTrigger className="w-full">
-      <SelectValue placeholder="Select issue type" />
-    </SelectTrigger>
+            <Select value={title} onValueChange={setTitle}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select issue type" />
+              </SelectTrigger>
 
-    <SelectContent>
-      {issueOptions.map((issue, idx) => (
-        <SelectItem key={idx} value={issue}>
-          {issue}
-        </SelectItem>
-      ))}
-    </SelectContent>
-  </Select>
-</div>
+              <SelectContent>
+                {issueOptions.map((issue, idx) => (
+                  <SelectItem key={idx} value={issue}>
+                    {issue}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           <div className="flex flex-col gap-2">
             <Label className="text-sm font-medium">Description</Label>
@@ -190,49 +205,29 @@ const res = await fetch(
           <div className="flex flex-col gap-2">
             <Label className="text-sm font-medium">Attach Files</Label>
 
-            {}
             <Input
               type="file"
               multiple
               accept="image/png, image/jpeg, image/jpg, image/webp, image/gif"
               onChange={handleFileChange}
             />
-            {fileError && (
-  <p className="text-xs text-red-500 mt-1">
-    Only image files (PNG, JPG, WebP, GIF) are allowed. Other files were ignored.
-  </p>
-)}
 
-            {}
+            {fileError && (
+              <p className="text-xs text-red-500 mt-1">
+                Only image files (PNG, JPG, WebP, GIF) are allowed. Other files were ignored.
+              </p>
+            )}
+
             {previewItems.length > 0 && (
               <div className="flex flex-wrap gap-3 mt-2">
                 {previewItems.map((item, i) => (
-                  <div
-                    key={i}
-                    className="relative border rounded-md overflow-hidden w-24 h-24"
-                  >
-                    {item.isImage ? (
-                      // Both image files and screenshots render the same way here
-                      <img
-                        src={item.url}
-                        alt={item.label}
-                        className="object-cover w-full h-full"
-                      />
-                    ) : (
-                      // Non-image uploaded files (PDFs, docs, etc.) show their filename
-                      <div className="flex items-center justify-center w-full h-full text-xs text-gray-700 text-center p-1">
-                        {item.label}
-                      </div>
-                    )}
+                  <div key={i} className="relative border rounded-md overflow-hidden w-24 h-24">
+                    <img
+                      src={item.url}
+                      alt={item.label}
+                      className="object-cover w-full h-full"
+                    />
 
-                    {}
-                    {item.kind === "screenshot" && (
-                      <span className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[10px] text-center py-0.5">
-                        Screenshot
-                      </span>
-                    )}
-
-                    {}
                     <Button
                       type="button"
                       className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
@@ -250,23 +245,7 @@ const res = await fetch(
             )}
           </div>
 
-          <Button
-            type="submit"
-            style={{
-              backgroundColor: "transparent",
-              backgroundImage: "linear-gradient(in oklab, rgb(4, 108, 78) 0%, rgb(3, 84, 63) 100%)",
-              borderColor: "rgb(1, 71, 55)",
-              borderWidth: "0.8px",
-              borderStyle: "solid",
-              borderRadius: "6px",
-              boxShadow: "0px 10px 15px -3px rgba(0,0,0,0.1), 0px 4px 6px -4px rgba(0,0,0,0.1)",
-              color: "rgb(255, 255, 255)",
-              columnGap: "8px",
-            }}
-            className="hover:opacity-90 transition-opacity"
-          >
-            Submit Issue
-          </Button>
+          <Button type="submit">Submit Issue</Button>
         </form>
       </div>
     </div>

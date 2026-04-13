@@ -1,7 +1,16 @@
-import React, { useState } from "react";
+import React, { useState,  useEffect} from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
+
+import { Textarea } from "./components/ui/textarea";
 
 interface FormPopupProps {
   onClose: () => void;
@@ -21,23 +30,42 @@ export default function FormPopup({ onClose, screenShots = [] }: FormPopupProps)
   const [description, setDescription] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [capturedScreenshots, setCapturedScreenshots] = useState<string[]>(screenShots);
-const [fileError, setFileError] = useState(false);
+  const [fileError, setFileError] = useState(false);
+  const [issueOptions, setIssueOptions] = useState<string[]>([]);
+  
+  useEffect(() => {
+  const fetchServiceCodes = async () => {
+    try {
+      const facilityId = "1"; // replace later with real value
+      const workflow = "default";// replace later if needed
 
-  const issueOptions = [
-    "OPD Wait Time",
-    "Lab Result Delay",
-    "Bed Not Available",
-    "Billing Issue",
-    "Staff Behaviour",
-    "Medicine Not Available",
-    "Food Quality Issue",
-    "Cleanliness Issue",
-    "Login Issue",
-    "System Slow",
-    "Data Not Saving",
-    "Report Generation Error",
-    "Printer Issue",
-  ];
+      const token = localStorage.getItem("care_access_token");
+
+const res = await fetch(
+  `http://localhost:9000/api/care_digit_integration/internal/service-codes/?facility_id=${facilityId}&workflow=${workflow}`,
+  {
+    headers: {
+      Authorization: token ? `Bearer ${token}` : "",
+    },
+  }
+);
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setIssueOptions(data.service_codes || []);
+      } else {
+        console.error("API error:", data);
+        setIssueOptions([]);
+      }
+    } catch (err) {
+      console.error("Network error:", err);
+      setIssueOptions([]);
+    }
+  };
+
+  fetchServiceCodes();
+}, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -119,38 +147,37 @@ const [fileError, setFileError] = useState(false);
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white rounded-xl p-8 w-[520px] max-w-full relative shadow-2xl flex flex-col gap-6">
-        <button
+        <Button
           className="absolute top-3 right-3 text-gray-500 hover:text-gray-800"
           onClick={onClose}
         >
           ✕
-        </button>
+        </Button>
 
         <h2 className="text-2xl font-semibold text-center">Submit Issue</h2>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <div className="flex flex-col gap-2">
-            <Label className="text-sm font-medium">Title</Label>
-            <select
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-              className="w-full border rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="" disabled>
-                Select issue type
-              </option>
-              {issueOptions.map((issue, idx) => (
-                <option key={idx} value={issue}>
-                  {issue}
-                </option>
-              ))}
-            </select>
-          </div>
+  <Label className="text-sm font-medium">Title</Label>
+
+  <Select value={title} onValueChange={setTitle}>
+    <SelectTrigger className="w-full">
+      <SelectValue placeholder="Select issue type" />
+    </SelectTrigger>
+
+    <SelectContent>
+      {issueOptions.map((issue, idx) => (
+        <SelectItem key={idx} value={issue}>
+          {issue}
+        </SelectItem>
+      ))}
+    </SelectContent>
+  </Select>
+</div>
 
           <div className="flex flex-col gap-2">
             <Label className="text-sm font-medium">Description</Label>
-            <textarea
+            <Textarea
               placeholder="Describe the issue..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -206,7 +233,7 @@ const [fileError, setFileError] = useState(false);
                     )}
 
                     {}
-                    <button
+                    <Button
                       type="button"
                       className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
                       onClick={() =>
@@ -216,7 +243,7 @@ const [fileError, setFileError] = useState(false);
                       }
                     >
                       ✕
-                    </button>
+                    </Button>
                   </div>
                 ))}
               </div>

@@ -98,35 +98,71 @@ export default function FormPopup({ onClose, screenShots = [] }: FormPopupProps)
       label: `Screenshot ${idx + 1}`,
     })),
   ];
+  const uploadToFileStore = async (file: File) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("tenantId", "mz"); // we will explain later
+  formData.append("module", "care-pgr");
+
+  const token = localStorage.getItem("care_access_token");
+
+  const res = await fetch(
+    "http://localhost:9000/api/care_digit_integration/filestore/upload/",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        // ❗ DO NOT set Content-Type manually for FormData
+      },
+      body: formData,
+    }
+  );
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err?.message || "Filestore upload failed");
+  }
+
+  const data = await res.json();
+
+  /**
+   * Expected response (example):
+   * {
+   *   fileStoreId: "abc123",
+   *   tenantId: "mz"
+   * }
+   */
+
+  return {
+    fileStoreId: data?.fileStoreId,
+    tenantId: data?.tenantId,
+  };
+};
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const payload = { title, description };
-    try {
-      const response = await fetch("http://localhost:9000/api/issue_flow/issues/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("care_access_token")}`,
-        },
-        body: JSON.stringify(payload),
-      });
-      const data = await response.json();
-      if (response.ok) {
-        console.log("Issue saved:", data);
-      } else {
-        console.error("Backend error:", data);
-      }
-    } catch (err) {
-      console.error("Network error:", err);
-    }
-    setTitle("");
-    setDescription("");
-    setFiles([]);
-    setCapturedScreenshots([]);
-    setFileError(false);
-    onClose();
-  };
+  e.preventDefault();
+
+  try {
+    // STEP 1: upload files first
+    const uploadedFiles = await Promise.all(
+      files.map((file) => uploadToFileStore(file))
+    );
+
+    console.log("Uploaded files:", uploadedFiles);
+
+    // STOP HERE (we are not calling complaint API yet)
+
+  } catch (err) {
+    console.error("Upload error:", err);
+  }
+
+  setTitle("");
+  setDescription("");
+  setFiles([]);
+  setCapturedScreenshots([]);
+  setFileError(false);
+  onClose();
+};
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">

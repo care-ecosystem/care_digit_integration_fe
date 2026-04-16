@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "./components/ui/textarea";
 import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 interface FormPopupProps {
   onClose: () => void;
@@ -40,6 +41,7 @@ function usePluginFacilityId() {
 }
 
 export default function FormPopup({
+  
   onClose,
   onSubmitSuccess,
   files,
@@ -50,7 +52,7 @@ export default function FormPopup({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [fileError, setFileError] = useState(false);
-
+  const [hasError, setHasError] = useState(false);
   const facilityId = usePluginFacilityId();
   const filesRef = useRef<File[]>(files);
 
@@ -218,6 +220,8 @@ export default function FormPopup({
 
       if (!res.ok) {
         console.error("PGR API error:", data);
+        toast.error("Failed to submit issue. Please try again."); 
+        setHasError(true);  
         return;
       }
 
@@ -227,9 +231,12 @@ export default function FormPopup({
       setTitle("");
       setDescription("");
       setFileError(false);
+      toast.success("Issue submitted successfully!");
       onSubmitSuccess(); // clears files + screenshots in parent and closes
     } catch (err) {
       console.error("Upload error:", err);
+      toast.error("Something went wrong. Please try again."); // ✅ added
+      setHasError(true);    
     }
   };
 

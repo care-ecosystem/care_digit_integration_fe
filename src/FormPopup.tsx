@@ -89,12 +89,12 @@ export default function FormPopup({ onClose, screenShots = [] }: FormPopupProps)
   // const removeFile = (idx: number) => {
   //   setFiles(files.filter((_, i) => i !== idx));
   // };
-  
+
   const removeFile = (idx: number) => {
-  const updated = files.filter((_, i) => i !== idx);
-  setFiles(updated);
-  filesRef.current = updated; // ✅ keep in sync
-};
+    const updated = files.filter((_, i) => i !== idx);
+    setFiles(updated);
+    filesRef.current = updated; // ✅ keep in sync
+  };
 
   const removeScreenshot = (idx: number) => {
     setCapturedScreenshots((prev) => prev.filter((_, i) => i !== idx));
@@ -147,58 +147,58 @@ export default function FormPopup({ onClose, screenShots = [] }: FormPopupProps)
       tenantId: data?.tenantId || "mz",
     };
   };
-  
+
   const dataURLtoFile = (dataUrl: string, filename: string) => {
-  const arr = dataUrl.split(",");
-  const mime = arr[0].match(/:(.*?);/)?.[1] || "image/png";
-  const bstr = atob(arr[1]);
-  let n = bstr.length;
-  const u8arr = new Uint8Array(n);
+    const arr = dataUrl.split(",");
+    const mime = arr[0].match(/:(.*?);/)?.[1] || "image/png";
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
 
-  while (n--) {
-    u8arr[n] = bstr.charCodeAt(n);
-  }
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
 
-  return new File([u8arr], filename, { type: mime });
-};
-   
-const getUserFromToken = () => {
-  try {
-    const token = localStorage.getItem("care_access_token");
-    if (!token) return null;
+    return new File([u8arr], filename, { type: mime });
+  };
 
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    return payload;
-  } catch {
-    return null;
-  }
-};
- const getSource = () => {
-  if (typeof navigator === "undefined") return "web";
+  const getUserFromToken = () => {
+    try {
+      const token = localStorage.getItem("care_access_token");
+      if (!token) return null;
 
-  const ua = navigator.userAgent.toLowerCase();
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      return payload;
+    } catch {
+      return null;
+    }
+  };
+  const getSource = () => {
+    if (typeof navigator === "undefined") return "web";
 
-  if (ua.includes("chrome-extension")) return "extension";
-  if (ua.includes("mobile")) return "mobile-web";
-  return "web";
-};
+    const ua = navigator.userAgent.toLowerCase();
+
+    if (ua.includes("chrome-extension")) return "extension";
+    if (ua.includes("mobile")) return "mobile-web";
+    return "web";
+  };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const user = getUserFromToken();
     try {
       // ✅ FIX: use ref instead of state
       // ✅ convert screenshots to File
-const screenshotFiles = capturedScreenshots.map((src, idx) =>
-  dataURLtoFile(src, `screenshot-${idx}.png`)
-);
+      const screenshotFiles = capturedScreenshots.map((src, idx) =>
+        dataURLtoFile(src, `screenshot-${idx}.png`)
+      );
 
-// ✅ merge both
-const allFiles = [...filesRef.current, ...screenshotFiles];
+      // ✅ merge both
+      const allFiles = [...filesRef.current, ...screenshotFiles];
 
-// ✅ upload everything
-const uploadedFiles = await Promise.all(
-  allFiles.map((file) => uploadToFileStore(file))
-);
+      // ✅ upload everything
+      const uploadedFiles = await Promise.all(
+        allFiles.map((file) => uploadToFileStore(file))
+      );
 
       setUploadedFiles(uploadedFiles);
 
@@ -302,63 +302,63 @@ const uploadedFiles = await Promise.all(
           </div>
 
           <div className="flex flex-col gap-2">
-  <Label className="text-sm font-medium">Attach Files</Label>
-  <Input
-    type="file"
-    multiple
-    accept="image/png, image/jpeg, image/jpg, image/webp, image/gif"
-    onChange={handleFileChange}
-  />
-  {fileError && (
-    <p className="text-xs text-red-500">
-      Only image files (PNG, JPG, WebP, GIF) allowed.
-    </p>
-  )}
-
-  {/* ✅ PREVIEW SECTION ADDED */}
-  {previewItems.length > 0 && (
-    <div className="flex flex-wrap gap-3 mt-2">
-      {previewItems.map((item, i) => (
-        <div
-          key={i}
-          className="relative border rounded-md overflow-hidden w-24 h-24"
-        >
-          {item.isImage ? (
-            <img
-              src={item.url}
-              alt={item.label}
-              className="object-cover w-full h-full"
+            <Label className="text-sm font-medium">Attach Files</Label>
+            <Input
+              type="file"
+              multiple
+              accept="image/png, image/jpeg, image/jpg, image/webp, image/gif"
+              onChange={handleFileChange}
             />
-          ) : (
-            <div className="flex items-center justify-center w-full h-full text-xs text-gray-700 text-center p-1">
-              {item.label}
-            </div>
-          )}
+            {fileError && (
+              <p className="text-xs text-red-500">
+                Only image files (PNG, JPG, WebP, GIF) allowed.
+              </p>
+            )}
 
-          {/* Screenshot label */}
-          {item.kind === "screenshot" && (
-            <span className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[10px] text-center py-0.5">
-              Screenshot
-            </span>
-          )}
+            {/* ✅ PREVIEW SECTION ADDED */}
+            {previewItems.length > 0 && (
+              <div className="flex flex-wrap gap-3 mt-2">
+                {previewItems.map((item, i) => (
+                  <div
+                    key={i}
+                    className="relative border rounded-md overflow-hidden w-24 h-24"
+                  >
+                    {item.isImage ? (
+                      <img
+                        src={item.url}
+                        alt={item.label}
+                        className="object-cover w-full h-full"
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center w-full h-full text-xs text-gray-700 text-center p-1">
+                        {item.label}
+                      </div>
+                    )}
 
-          {/* Remove button */}
-          <button
-            type="button"
-            className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
-            onClick={() =>
-              item.kind === "file"
-                ? removeFile(item.idx)
-                : removeScreenshot(item.idx)
-            }
-          >
-            ✕
-          </button>
-        </div>
-      ))}
-    </div>
-  )}
-</div>
+                    {/* Screenshot label */}
+                    {item.kind === "screenshot" && (
+                      <span className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[10px] text-center py-0.5">
+                        Screenshot
+                      </span>
+                    )}
+
+                    {/* Remove button */}
+                    <button
+                      type="button"
+                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                      onClick={() =>
+                        item.kind === "file"
+                          ? removeFile(item.idx)
+                          : removeScreenshot(item.idx)
+                      }
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           <Button type="submit">Submit Issue</Button>
         </form>

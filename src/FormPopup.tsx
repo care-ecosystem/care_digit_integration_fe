@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react"; // ✅ FIX ADDED
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -39,12 +39,16 @@ export default function FormPopup({ onClose, screenShots = [] }: FormPopupProps)
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [files, setFiles] = useState<File[]>([]);
-  const [capturedScreenshots, setCapturedScreenshots] = useState<string[]>(screenShots);
+  const [capturedScreenshots, setCapturedScreenshots] =
+    useState<string[]>(screenShots);
   const [fileError, setFileError] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
 
   const facilityId = usePluginFacilityId();
 
-  // ✅ TanStack Query replaces useEffect + useState for service codes
+  // ✅ FIX: stable file storage
+  const filesRef = useRef<File[]>([]);
+
   const { data: issueOptions = [] } = useQuery({
     queryKey: ["service-codes", facilityId],
     queryFn: async () => {
@@ -53,9 +57,9 @@ export default function FormPopup({ onClose, screenShots = [] }: FormPopupProps)
         `http://localhost:9000/api/care_digit_integration/internal/service-codes/?facility_id=${facilityId}&workflow=system`,
         {
           headers: {
-  "Content-Type": "application/json",
-  ...(token && { Authorization: `Bearer ${token}` }),
-},
+            "Content-Type": "application/json",
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
         }
       );
       const data = await res.json();
@@ -68,15 +72,29 @@ export default function FormPopup({ onClose, screenShots = [] }: FormPopupProps)
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const selected = Array.from(e.target.files);
-      const validFiles = selected.filter((file) => ALLOWED_TYPES.has(file.type));
+      const validFiles = selected.filter((file) =>
+        ALLOWED_TYPES.has(file.type)
+      );
+
       setFileError(validFiles.length < selected.length);
-      setFiles((prev) => [...prev, ...validFiles]);
+
+      setFiles((prev) => {
+        const updated = [...prev, ...validFiles];
+        filesRef.current = updated; // ✅ FIX
+        return updated;
+      });
     }
   };
 
+  // const removeFile = (idx: number) => {
+  //   setFiles(files.filter((_, i) => i !== idx));
+  // };
+  
   const removeFile = (idx: number) => {
-    setFiles(files.filter((_, i) => i !== idx));
-  };
+  const updated = files.filter((_, i) => i !== idx);
+  setFiles(updated);
+  filesRef.current = updated; // ✅ keep in sync
+};
 
   const removeScreenshot = (idx: number) => {
     setCapturedScreenshots((prev) => prev.filter((_, i) => i !== idx));
@@ -98,71 +116,149 @@ export default function FormPopup({ onClose, screenShots = [] }: FormPopupProps)
       label: `Screenshot ${idx + 1}`,
     })),
   ];
+
   const uploadToFileStore = async (file: File) => {
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("tenantId", "mz"); // we will explain later
-  formData.append("module", "care-pgr");
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("tenantId", "mz");
+    formData.append("module", "care-pgr");
 
-  const token = localStorage.getItem("care_access_token");
+    const token = localStorage.getItem("care_access_token");
 
-  const res = await fetch(
-    "http://localhost:9000/api/care_digit_integration/filestore/upload/",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        // ❗ DO NOT set Content-Type manually for FormData
-      },
-      body: formData,
-    }
-  );
-
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err?.message || "Filestore upload failed");
-  }
-
-  const data = await res.json();
-
-  /**
-   * Expected response (example):
-   * {
-   *   fileStoreId: "abc123",
-   *   tenantId: "mz"
-   * }
-   */
-
-  return {
-    fileStoreId: data?.fileStoreId,
-    tenantId: data?.tenantId,
-  };
-};
-
-  const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-
-  try {
-    // STEP 1: upload files first
-    const uploadedFiles = await Promise.all(
-      files.map((file) => uploadToFileStore(file))
+    const res = await fetch(
+      "http://localhost:9000/api/care_digit_integration/filestore/upload/",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      }
     );
 
-    console.log("Uploaded files:", uploadedFiles);
+    const data = await res.json();
 
-    // STOP HERE (we are not calling complaint API yet)
+    if (!res.ok) {
+      throw new Error(data?.message || "Filestore upload failed");
+    }
 
-  } catch (err) {
-    console.error("Upload error:", err);
+    return {
+      fileStoreId: data?.fileStoreId || data?.files?.[0]?.fileStoreId,
+      tenantId: data?.tenantId || "mz",
+    };
+  };
+  
+  const dataURLtoFile = (dataUrl: string, filename: string) => {
+  const arr = dataUrl.split(",");
+  const mime = arr[0].match(/:(.*?);/)?.[1] || "image/png";
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
   }
 
-  setTitle("");
-  setDescription("");
-  setFiles([]);
-  setCapturedScreenshots([]);
-  setFileError(false);
-  onClose();
+  return new File([u8arr], filename, { type: mime });
 };
+   
+const getUserFromToken = () => {
+  try {
+    const token = localStorage.getItem("care_access_token");
+    if (!token) return null;
+
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return payload;
+  } catch {
+    return null;
+  }
+};
+ const getSource = () => {
+  if (typeof navigator === "undefined") return "web";
+
+  const ua = navigator.userAgent.toLowerCase();
+
+  if (ua.includes("chrome-extension")) return "extension";
+  if (ua.includes("mobile")) return "mobile-web";
+  return "web";
+};
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const user = getUserFromToken();
+    try {
+      // ✅ FIX: use ref instead of state
+      // ✅ convert screenshots to File
+const screenshotFiles = capturedScreenshots.map((src, idx) =>
+  dataURLtoFile(src, `screenshot-${idx}.png`)
+);
+
+// ✅ merge both
+const allFiles = [...filesRef.current, ...screenshotFiles];
+
+// ✅ upload everything
+const uploadedFiles = await Promise.all(
+  allFiles.map((file) => uploadToFileStore(file))
+);
+
+      setUploadedFiles(uploadedFiles);
+
+      const token = localStorage.getItem("care_access_token");
+
+      const filestore_uploads = uploadedFiles
+        .filter((f) => f?.fileStoreId)
+        .map((f) => ({
+          fileStoreId: f.fileStoreId,
+          tenantId: f.tenantId,
+        }));
+      console.log("User from storage:", user);
+      const complaintPayload = {
+        facility: facilityId,
+        reporter: user?.user_id || null,
+        workflow: "system",
+        service_code: title,
+        app_context: {
+          Platform: navigator.platform,
+          Browser: navigator.userAgent,
+        },
+        description: description,
+        filestore_uploads,
+        source: getSource(),
+      };
+
+      console.log("Complaint Payload:", complaintPayload);
+
+      const res = await fetch(
+        "http://localhost:9000/api/care_digit_integration/pgr/complaints/",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
+          body: JSON.stringify(complaintPayload),
+        }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        console.error("PGR API error:", data);
+        return;
+      }
+
+      console.log("Complaint Created Successfully:", data);
+    } catch (err) {
+      console.error("Upload error:", err);
+    }
+
+    setTitle("");
+    setDescription("");
+    setFiles([]);
+    filesRef.current = []; // ✅ FIX
+    setCapturedScreenshots([]);
+    setFileError(false);
+    onClose();
+  };
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -200,44 +296,69 @@ export default function FormPopup({ onClose, screenShots = [] }: FormPopupProps)
               placeholder="Describe the issue..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full border rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               rows={4}
               required
             />
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label className="text-sm font-medium">Attach Files</Label>
-            <Input
-              type="file"
-              multiple
-              accept="image/png, image/jpeg, image/jpg, image/webp, image/gif"
-              onChange={handleFileChange}
+  <Label className="text-sm font-medium">Attach Files</Label>
+  <Input
+    type="file"
+    multiple
+    accept="image/png, image/jpeg, image/jpg, image/webp, image/gif"
+    onChange={handleFileChange}
+  />
+  {fileError && (
+    <p className="text-xs text-red-500">
+      Only image files (PNG, JPG, WebP, GIF) allowed.
+    </p>
+  )}
+
+  {/* ✅ PREVIEW SECTION ADDED */}
+  {previewItems.length > 0 && (
+    <div className="flex flex-wrap gap-3 mt-2">
+      {previewItems.map((item, i) => (
+        <div
+          key={i}
+          className="relative border rounded-md overflow-hidden w-24 h-24"
+        >
+          {item.isImage ? (
+            <img
+              src={item.url}
+              alt={item.label}
+              className="object-cover w-full h-full"
             />
-            {fileError && (
-              <p className="text-xs text-red-500 mt-1">
-                Only image files (PNG, JPG, WebP, GIF) are allowed. Other files were ignored.
-              </p>
-            )}
-            {previewItems.length > 0 && (
-              <div className="flex flex-wrap gap-3 mt-2">
-                {previewItems.map((item, i) => (
-                  <div key={i} className="relative border rounded-md overflow-hidden w-24 h-24">
-                    <img src={item.url} alt={item.label} className="object-cover w-full h-full" />
-                    <Button
-                      type="button"
-                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
-                      onClick={() =>
-                        item.kind === "file" ? removeFile(item.idx) : removeScreenshot(item.idx)
-                      }
-                    >
-                      ✕
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          ) : (
+            <div className="flex items-center justify-center w-full h-full text-xs text-gray-700 text-center p-1">
+              {item.label}
+            </div>
+          )}
+
+          {/* Screenshot label */}
+          {item.kind === "screenshot" && (
+            <span className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[10px] text-center py-0.5">
+              Screenshot
+            </span>
+          )}
+
+          {/* Remove button */}
+          <button
+            type="button"
+            className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+            onClick={() =>
+              item.kind === "file"
+                ? removeFile(item.idx)
+                : removeScreenshot(item.idx)
+            }
+          >
+            ✕
+          </button>
+        </div>
+      ))}
+    </div>
+  )}
+</div>
 
           <Button type="submit">Submit Issue</Button>
         </form>
@@ -245,3 +366,4 @@ export default function FormPopup({ onClose, screenShots = [] }: FormPopupProps)
     </div>
   );
 }
+

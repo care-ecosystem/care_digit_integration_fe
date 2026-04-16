@@ -38,7 +38,6 @@ function IssueManagementWidget({
         align="end"
         className="flex flex-col-reverse gap-2 min-w-0 w-fit shadow-none ring-0 px-0"
       >
-        {}
         <Button
           variant="outline"
           size="icon"
@@ -48,7 +47,6 @@ function IssueManagementWidget({
           <CameraIcon className="text-white" />
         </Button>
 
-        {}
         <Button
           variant="outline"
           size="icon"
@@ -58,7 +56,6 @@ function IssueManagementWidget({
           <NotebookPenIcon className="text-white" />
         </Button>
 
-        {}
         <Button
           variant="outline"
           size="icon"
@@ -75,16 +72,28 @@ function IssueManagementWidget({
 export default function App() {
   const { capture } = useScreenCapture();
 
-  const [screenShots, setScreenShots] = useState<string[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
+
+  // ✅ lifted up — survives close/reopen
+  const [files, setFiles] = useState<File[]>([]);
+  const [capturedScreenshots, setCapturedScreenshots] = useState<string[]>([]);
 
   const handleCaptureScreenShot = async () => {
     try {
       const image = await capture();
-      setScreenShots((prev) => [...prev, image]);
+      setCapturedScreenshots((prev) => [...prev, image]);
     } catch (error) {
       console.error("Error capturing screenshot:", error);
     }
+  };
+
+  const handleFormClose = () => setIsFormOpen(false);
+
+  const handleFormSubmitSuccess = () => {
+    // ✅ only clear after successful submit (called from FormPopup)
+    setFiles([]);
+    setCapturedScreenshots([]);
+    setIsFormOpen(false);
   };
 
   return (
@@ -97,9 +106,14 @@ export default function App() {
       />
 
       {isFormOpen && (
-        <FormPopup onClose={() => setIsFormOpen(false)}
-        screenShots={screenShots}
-         />
+        <FormPopup
+          onClose={handleFormClose}
+          onSubmitSuccess={handleFormSubmitSuccess}
+          files={files}
+          setFiles={setFiles}
+          capturedScreenshots={capturedScreenshots}
+          setCapturedScreenshots={setCapturedScreenshots}
+        />
       )}
     </div>
   );

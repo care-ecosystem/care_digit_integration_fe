@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react"; // ✅ FIX ADDED
+import React, { useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -14,7 +14,11 @@ import { useQuery } from "@tanstack/react-query";
 
 interface FormPopupProps {
   onClose: () => void;
-  screenShots?: string[];
+  onSubmitSuccess: () => void;
+  files: File[];
+  setFiles: React.Dispatch<React.SetStateAction<File[]>>;
+  capturedScreenshots: string[];
+  setCapturedScreenshots: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
 const ALLOWED_TYPES = new Set([
@@ -35,19 +39,20 @@ function usePluginFacilityId() {
   return undefined;
 }
 
-export default function FormPopup({ onClose, screenShots = [] }: FormPopupProps) {
+export default function FormPopup({
+  onClose,
+  onSubmitSuccess,
+  files,
+  setFiles,
+  capturedScreenshots,
+  setCapturedScreenshots,
+}: FormPopupProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [files, setFiles] = useState<File[]>([]);
-  const [capturedScreenshots, setCapturedScreenshots] =
-    useState<string[]>(screenShots);
   const [fileError, setFileError] = useState(false);
-  const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
 
   const facilityId = usePluginFacilityId();
-
-  // ✅ FIX: stable file storage
-  const filesRef = useRef<File[]>([]);
+  const filesRef = useRef<File[]>(files);
 
   const { data: issueOptions = [] } = useQuery({
     queryKey: ["service-codes", facilityId],
@@ -72,28 +77,20 @@ export default function FormPopup({ onClose, screenShots = [] }: FormPopupProps)
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const selected = Array.from(e.target.files);
-      const validFiles = selected.filter((file) =>
-        ALLOWED_TYPES.has(file.type)
-      );
-
+      const validFiles = selected.filter((file) => ALLOWED_TYPES.has(file.type));
       setFileError(validFiles.length < selected.length);
-
       setFiles((prev) => {
         const updated = [...prev, ...validFiles];
-        filesRef.current = updated; // ✅ FIX
+        filesRef.current = updated;
         return updated;
       });
     }
   };
 
-  // const removeFile = (idx: number) => {
-  //   setFiles(files.filter((_, i) => i !== idx));
-  // };
-
   const removeFile = (idx: number) => {
     const updated = files.filter((_, i) => i !== idx);
     setFiles(updated);
-    filesRef.current = updated; // ✅ keep in sync
+    filesRef.current = updated;
   };
 
   const removeScreenshot = (idx: number) => {
@@ -124,23 +121,17 @@ export default function FormPopup({ onClose, screenShots = [] }: FormPopupProps)
     formData.append("module", "care-pgr");
 
     const token = localStorage.getItem("care_access_token");
-
     const res = await fetch(
       "http://localhost:9000/api/care_digit_integration/filestore/upload/",
       {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
         body: formData,
       }
     );
 
     const data = await res.json();
-
-    if (!res.ok) {
-      throw new Error(data?.message || "Filestore upload failed");
-    }
+    if (!res.ok) throw new Error(data?.message || "Filestore upload failed");
 
     return {
       fileStoreId: data?.fileStoreId || data?.files?.[0]?.fileStoreId,
@@ -154,11 +145,7 @@ export default function FormPopup({ onClose, screenShots = [] }: FormPopupProps)
     const bstr = atob(arr[1]);
     let n = bstr.length;
     const u8arr = new Uint8Array(n);
-
-    while (n--) {
-      u8arr[n] = bstr.charCodeAt(n);
-    }
-
+    while (n--) u8arr[n] = bstr.charCodeAt(n);
     return new File([u8arr], filename, { type: mime });
   };
 
@@ -166,51 +153,41 @@ export default function FormPopup({ onClose, screenShots = [] }: FormPopupProps)
     try {
       const token = localStorage.getItem("care_access_token");
       if (!token) return null;
-
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      return payload;
+      return JSON.parse(atob(token.split(".")[1]));
     } catch {
       return null;
     }
   };
+
   const getSource = () => {
     if (typeof navigator === "undefined") return "web";
-
     const ua = navigator.userAgent.toLowerCase();
-
     if (ua.includes("chrome-extension")) return "extension";
     if (ua.includes("mobile")) return "mobile-web";
     return "web";
   };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const user = getUserFromToken();
+
     try {
-      // ✅ FIX: use ref instead of state
-      // ✅ convert screenshots to File
       const screenshotFiles = capturedScreenshots.map((src, idx) =>
         dataURLtoFile(src, `screenshot-${idx}.png`)
       );
 
-      // ✅ merge both
       const allFiles = [...filesRef.current, ...screenshotFiles];
 
-      // ✅ upload everything
       const uploadedFiles = await Promise.all(
         allFiles.map((file) => uploadToFileStore(file))
       );
-
-      setUploadedFiles(uploadedFiles);
 
       const token = localStorage.getItem("care_access_token");
 
       const filestore_uploads = uploadedFiles
         .filter((f) => f?.fileStoreId)
-        .map((f) => ({
-          fileStoreId: f.fileStoreId,
-          tenantId: f.tenantId,
-        }));
-      console.log("User from storage:", user);
+        .map((f) => ({ fileStoreId: f.fileStoreId, tenantId: f.tenantId }));
+
       const complaintPayload = {
         facility: facilityId,
         reporter: user?.user_id || null,
@@ -220,12 +197,10 @@ export default function FormPopup({ onClose, screenShots = [] }: FormPopupProps)
           Platform: navigator.platform,
           Browser: navigator.userAgent,
         },
-        description: description,
+        description,
         filestore_uploads,
         source: getSource(),
       };
-
-      console.log("Complaint Payload:", complaintPayload);
 
       const res = await fetch(
         "http://localhost:9000/api/care_digit_integration/pgr/complaints/",
@@ -247,17 +222,15 @@ export default function FormPopup({ onClose, screenShots = [] }: FormPopupProps)
       }
 
       console.log("Complaint Created Successfully:", data);
+
+      // ✅ only clear on success, via parent
+      setTitle("");
+      setDescription("");
+      setFileError(false);
+      onSubmitSuccess(); // clears files + screenshots in parent and closes
     } catch (err) {
       console.error("Upload error:", err);
     }
-
-    setTitle("");
-    setDescription("");
-    setFiles([]);
-    filesRef.current = []; // ✅ FIX
-    setCapturedScreenshots([]);
-    setFileError(false);
-    onClose();
   };
 
   return (
@@ -315,7 +288,6 @@ export default function FormPopup({ onClose, screenShots = [] }: FormPopupProps)
               </p>
             )}
 
-            {/* ✅ PREVIEW SECTION ADDED */}
             {previewItems.length > 0 && (
               <div className="flex flex-wrap gap-3 mt-2">
                 {previewItems.map((item, i) => (
@@ -335,14 +307,12 @@ export default function FormPopup({ onClose, screenShots = [] }: FormPopupProps)
                       </div>
                     )}
 
-                    {/* Screenshot label */}
                     {item.kind === "screenshot" && (
                       <span className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[10px] text-center py-0.5">
                         Screenshot
                       </span>
                     )}
 
-                    {/* Remove button */}
                     <button
                       type="button"
                       className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
@@ -366,4 +336,3 @@ export default function FormPopup({ onClose, screenShots = [] }: FormPopupProps)
     </div>
   );
 }
-

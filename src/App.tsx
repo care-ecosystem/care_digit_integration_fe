@@ -14,13 +14,16 @@ import { useState } from "react";
 import { Button } from "./components/ui/button";
 import { useScreenCapture } from "./hooks/useScreenCapture";
 import FormPopup from "./FormPopup";
+import IssueListPopup from "./IssueListPopup";
 
 function IssueManagementWidget({
   onCaptureCB,
   onOpenForm,
+  onOpenIssueList,
 }: {
   onCaptureCB: () => void;
   onOpenForm: () => void;
+  onOpenIssueList: () => void;
 }) {
   return (
     <Popover>
@@ -60,7 +63,7 @@ function IssueManagementWidget({
           variant="outline"
           size="icon"
           className="rounded-full h-16 w-16 shadow-xl bg-primary-400"
-          onClick={() => console.log("Text button clicked")}
+          onClick={onOpenIssueList}
         >
           <NotebookTextIcon className="text-white" />
         </Button>
@@ -71,7 +74,7 @@ function IssueManagementWidget({
 
 export default function App() {
   const { capture } = useScreenCapture();
-
+  const [isIssueListOpen, setIsIssueListOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
 
   // ✅ lifted up — survives close/reopen
@@ -101,9 +104,10 @@ export default function App() {
       <Toaster position="top-right" richColors expand theme="light" />
 
       <IssueManagementWidget
-        onCaptureCB={handleCaptureScreenShot}
-        onOpenForm={() => setIsFormOpen(true)}
-      />
+  onCaptureCB={handleCaptureScreenShot}
+  onOpenForm={() => setIsFormOpen(true)}
+  onOpenIssueList={() => setIsIssueListOpen(true)}
+/>
 
       {isFormOpen && (
         <FormPopup
@@ -115,6 +119,9 @@ export default function App() {
           setCapturedScreenshots={setCapturedScreenshots}
         />
       )}
+      {isIssueListOpen && (
+  <IssueListPopup onClose={() => setIsIssueListOpen(false)} />
+)}
     </div>
   );
 }

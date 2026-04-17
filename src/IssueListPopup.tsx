@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Button } from "./components/ui/button";
-
+import { useTranslation } from "react-i18next"; // ✅ ADDED 
+import { I18NNAMESPACE } from "@/lib/constants"; // ✅ ADDED
 interface Complaint {
   id: number;
   pgr_ticket_id: string | null;
@@ -18,7 +19,7 @@ export default function IssueListPopup({
   const [data, setData] = useState<Complaint[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
+  const { t } = useTranslation(I18NNAMESPACE); // ✅ ADDED
   const fetchComplaints = async () => {
     setLoading(true);
     setError("");
@@ -44,13 +45,13 @@ export default function IssueListPopup({
       if (!res.ok) {
         throw new Error(json?.detail || "Failed to fetch complaints");
       }
-      
-      const filteredData = (json?.results || []).filter((item: Complaint) => {
-  console.log("Checking workflow:", item.workflow); // debug
-  return item.workflow?.toLowerCase() === "system";
-});
-
-      setData(json?.results || []);
+      // ✅ FIXED: actually use filtered data const filteredData = (json?.results || []).filter( (item: Complaint) => item.workflow?.toLowerCase() === "system" );
+      const filteredData = (json?.results || []).filter(
+        (item: Complaint) =>
+          item.workflow?.toLowerCase() === "system"
+      );
+    
+setData(filteredData); // 🔴 FIXED
     } catch (err: any) {
       setError(err.message || "Something went wrong");
     } finally {
@@ -74,7 +75,13 @@ export default function IssueListPopup({
         return "bg-gray-100 text-gray-700";
     }
   };
-
+   const SERVICE_CODE_LABELS: Record<string, string> = {
+  TechnicalIssues: t("Technical Issues"),
+  Other: t("other"),
+  PerformanceIssue: t("Performance Issue"),
+  Data: t("Data Issue"),
+  SecurityIssues: t("Security Issues"),
+}; 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white rounded-xl p-6 w-[900px] max-w-full shadow-2xl relative">
@@ -89,17 +96,21 @@ export default function IssueListPopup({
         </Button>
 
         <h2 className="text-xl font-semibold mb-4">
-          Issues / Complaints List
+          {t("Complaints List")}
         </h2>
 
-        {/* Loading */}
+        {/* 🔴 CHANGE 2: translated loading */}
         {loading && (
-          <p className="text-gray-500">Loading complaints...</p>
+          <p className="text-gray-500">
+            {t("Loading complaints")}
+          </p>
         )}
 
-        {/* Error */}
+        {/* 🔴 CHANGE 3: translated error */}
         {error && (
-          <p className="text-red-500">{error}</p>
+          <p className="text-red-500">
+            {t("Error fetching complaints")}
+          </p>
         )}
 
         {/* Table */}
@@ -108,11 +119,11 @@ export default function IssueListPopup({
             <table className="w-full text-sm">
               <thead className="bg-gray-100 sticky top-0">
                 <tr>
-                  <th className="p-2 text-left">Ticket ID</th>
-                  <th className="p-2 text-left">Service Code</th>
-                  <th className="p-2 text-left">Workflow</th>
-                  <th className="p-2 text-left">Status</th>
-                  <th className="p-2 text-left">Created Date</th>
+                  <th className="p-2 text-left">{t("Ticket ID")}</th>
+                  <th className="p-2 text-left">{t("Service Code")}</th>
+                  <th className="p-2 text-left">{t("Workflow")}</th>
+                  <th className="p-2 text-left">{t("Status")}</th>
+                  <th className="p-2 text-left">{t("Created Date")}</th>
                 </tr>
               </thead>
 
@@ -126,21 +137,23 @@ export default function IssueListPopup({
                       {item.pgr_ticket_id || "-"}
                     </td>
 
+                     <td className="p-2">
+  {SERVICE_CODE_LABELS[item.service_code] || item.service_code}
+</td>
+                    
+                    {/* 🔴 CHANGE 6: WORKFLOW TRANSLATED */}
                     <td className="p-2">
-                      {item.service_code}
+                      {t(item.workflow, item.workflow)}
                     </td>
 
-                    <td className="p-2">
-                      {item.workflow}
-                    </td>
-
+                     {/* 🔴 CHANGE 7: STATUS TRANSLATED */}
                     <td className="p-2">
                       <span
                         className={`px-2 py-1 rounded text-xs ${getStatusColor(
                           item.pgr_status
                         )}`}
                       >
-                        {item.pgr_status}
+                        {t(item.pgr_status, item.pgr_status)}
                       </span>
                     </td>
 
@@ -152,10 +165,10 @@ export default function IssueListPopup({
               </tbody>
             </table>
 
-            {/* Empty state */}
+            {/* 🔴 CHANGE 8: empty state translated */}
             {data.length === 0 && (
               <p className="p-4 text-center text-gray-500">
-                No complaints found
+                {t("No complaints found")}
               </p>
             )}
           </div>

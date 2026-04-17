@@ -2,6 +2,7 @@ import React, { useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { useTranslation } from "react-i18next";
 import {
   Select,
   SelectTrigger,
@@ -12,6 +13,7 @@ import {
 import { Textarea } from "./components/ui/textarea";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { I18NNAMESPACE } from "@/lib/constants";
 
 interface FormPopupProps {
   onClose: () => void;
@@ -41,7 +43,7 @@ function usePluginFacilityId() {
 }
 
 export default function FormPopup({
-  
+
   onClose,
   onSubmitSuccess,
   files,
@@ -55,7 +57,15 @@ export default function FormPopup({
   const [hasError, setHasError] = useState(false);
   const facilityId = usePluginFacilityId();
   const filesRef = useRef<File[]>(files);
-
+  const { t } = useTranslation(I18NNAMESPACE);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const ISSUE_LABELS: Record<string, string> = {
+  TechnicalIssues: t("Technical Issues"),
+  Other: t("other"),
+  PerformanceIssue: t("Performance Issue"),
+  Data: t("Data Issue"),
+  SecurityIssues: t("Security Issues"),
+};
   const { data: issueOptions = [] } = useQuery({
     queryKey: ["service-codes", facilityId],
     queryFn: async () => {
@@ -220,8 +230,9 @@ export default function FormPopup({
 
       if (!res.ok) {
         console.error("PGR API error:", data);
-        toast.error("Failed to submit issue. Please try again."); 
-        setHasError(true);  
+        //toast.error("Failed to submit issue. Please try again."); 
+        toast.error(t("submit_error"));
+        setHasError(true);
         return;
       }
 
@@ -231,12 +242,12 @@ export default function FormPopup({
       setTitle("");
       setDescription("");
       setFileError(false);
-      toast.success("Issue submitted successfully!");
+      toast.success(t("submit_success"));
       onSubmitSuccess(); // clears files + screenshots in parent and closes
     } catch (err) {
       console.error("Upload error:", err);
-      toast.error("Something went wrong. Please try again."); // ✅ added
-      setHasError(true);    
+      toast.error(t("upload_error"));// ✅ added
+      setHasError(true);
     }
   };
 
@@ -251,19 +262,19 @@ export default function FormPopup({
           ✕
         </Button>
 
-        <h2 className="text-2xl font-semibold text-center">Submit Issue</h2>
+        <h2 className="text-2xl font-semibold text-center">{t("Submit Issue")}</h2>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <div className="flex flex-col gap-2">
-            <Label className="text-sm font-medium">Title</Label>
+            <Label className="text-sm font-medium">{t("title")}</Label>
             <Select value={title} onValueChange={setTitle}>
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select issue type" />
+                <SelectValue placeholder={t("title_placeholder")} />
               </SelectTrigger>
               <SelectContent>
                 {issueOptions.map((issue, idx) => (
                   <SelectItem key={idx} value={issue}>
-                    {issue}
+                    {ISSUE_LABELS[issue] || issue}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -271,9 +282,9 @@ export default function FormPopup({
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label className="text-sm font-medium">Description</Label>
+            <Label className="text-sm font-medium">{t("description")}</Label>
             <Textarea
-              placeholder="Describe the issue..."
+              placeholder={t("description_placeholder")}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={4}
@@ -282,16 +293,32 @@ export default function FormPopup({
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label className="text-sm font-medium">Attach Files</Label>
-            <Input
+            <Label className="text-sm font-medium">{t("Attach Files")}</Label>
+            {/* <Input
               type="file"
               multiple
               accept="image/png, image/jpeg, image/jpg, image/webp, image/gif"
               onChange={handleFileChange}
+            /> */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/png, image/jpeg, image/jpg, image/webp, image/gif"
+              onChange={handleFileChange}
+              className="hidden"
             />
+            <Button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300"
+            >
+              {t("Choose Files")}
+            </Button>
+            
             {fileError && (
               <p className="text-xs text-red-500">
-                Only image files (PNG, JPG, WebP, GIF) allowed.
+                {t("File Error")}
               </p>
             )}
 
@@ -316,7 +343,7 @@ export default function FormPopup({
 
                     {item.kind === "screenshot" && (
                       <span className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[10px] text-center py-0.5">
-                        Screenshot
+                        {t("Screenshot")}
                       </span>
                     )}
 
@@ -337,7 +364,7 @@ export default function FormPopup({
             )}
           </div>
 
-          <Button type="submit">Submit Issue</Button>
+          <Button type="submit">{t("Submit Button")}</Button>
         </form>
       </div>
     </div>

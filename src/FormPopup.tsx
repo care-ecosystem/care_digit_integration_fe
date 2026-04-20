@@ -258,18 +258,31 @@ export default function FormPopup({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl p-8 w-[520px] max-w-full relative shadow-2xl flex flex-col gap-6">
+      <div
+  className="
+    bg-white
+    rounded-xl
+    p-4 sm:p-6 md:p-8
+    w-full max-w-lg
+    max-h-[90vh]
+    overflow-y-auto
+    relative
+    shadow-2xl
+    flex flex-col
+    gap-4 sm:gap-5 md:gap-6 
+  "
+>
         <Button
           variant="ghost"
-          className="absolute top-3 right-3 text-gray-500 hover:text-gray-800 hover:bg-gray-100"
+          className="absolute top-2 right-2 sm:top-3 sm:right-3 p-2 text-gray-500 hover:text-gray-800 hover:bg-gray-100"
           onClick={onClose}
         >
           ✕
         </Button>
 
-        <h2 className="text-2xl font-semibold text-center">{t("Submit Issue")}</h2>
+        <h2 className="text-lg sm:text-xl md:text-2xl font-semibold text-center"></h2>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4 sm:gap-5">
           <div className="flex flex-col gap-2">
             <Label className="text-sm font-medium">{t("title")}</Label>
             <Select value={title} onValueChange={setTitle}>
@@ -316,7 +329,7 @@ export default function FormPopup({
             <Button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300"
+              className="w-full sm:w-auto bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300"
             >
               {t("Choose Files")}
             </Button>
@@ -328,11 +341,11 @@ export default function FormPopup({
             )}
 
             {previewItems.length > 0 && (
-              <div className="flex flex-wrap gap-3 mt-2">
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 sm:gap-3 mt-2">
                 {previewItems.map((item, i) => (
                   <div
                     key={i}
-                    className="relative border rounded-md overflow-hidden w-24 h-24"
+                    className="relative border rounded-md overflow-hidden w-full aspect-square"
                   >
                     {item.isImage ? (
                       <img
@@ -369,7 +382,7 @@ export default function FormPopup({
             )}
           </div>
 
-          <Button type="submit" disabled={isSubmitting}>
+          <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
   {isSubmitting ? (
     <span className="flex items-center gap-2">
       {/* 🔄 Spinner */}

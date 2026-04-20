@@ -369,11 +369,18 @@ export default function FormPopup({
             )}
           </div>
 
-          <Button
-  type="submit"
-  disabled={isSubmitting} // ✅ disable when submitting
->
-  {isSubmitting ? t("Submitting...") : t("Submit Button")} {/* ✅ loading text */}
+          <Button type="submit" disabled={isSubmitting}>
+  {isSubmitting ? (
+    <span className="flex items-center gap-2">
+      {/* 🔄 Spinner */}
+      <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+      
+      {/* 📝 Text */}
+      {t("Submitting...")}
+    </span>
+  ) : (
+    t("Submit Button")
+  )}
 </Button>
         </form>
       </div>

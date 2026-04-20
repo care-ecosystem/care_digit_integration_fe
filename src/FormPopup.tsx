@@ -52,6 +52,7 @@ export default function FormPopup({
   setCapturedScreenshots,
 }: FormPopupProps) {
   const [title, setTitle] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false); // ✅ ADDED
   const [description, setDescription] = useState("");
   const [fileError, setFileError] = useState(false);
   const [hasError, setHasError] = useState(false);
@@ -66,6 +67,7 @@ export default function FormPopup({
   Data: t("Data Issue"),
   SecurityIssues: t("Security Issues"),
 };
+  
   const { data: issueOptions = [] } = useQuery({
     queryKey: ["service-codes", facilityId],
     queryFn: async () => {
@@ -182,7 +184,8 @@ export default function FormPopup({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const user = getUserFromToken();
-
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     try {
       const screenshotFiles = capturedScreenshots.map((src, idx) =>
         dataURLtoFile(src, `screenshot-${idx}.png`)
@@ -248,7 +251,9 @@ export default function FormPopup({
       console.error("Upload error:", err);
       toast.error(t("upload_error"));// ✅ added
       setHasError(true);
-    }
+    } finally {
+    setIsSubmitting(false); // 🔓 3. Unlock ALWAYS
+  }
   };
 
   return (
@@ -364,7 +369,12 @@ export default function FormPopup({
             )}
           </div>
 
-          <Button type="submit">{t("Submit Button")}</Button>
+          <Button
+  type="submit"
+  disabled={isSubmitting} // ✅ disable when submitting
+>
+  {isSubmitting ? t("Submitting...") : t("Submit Button")} {/* ✅ loading text */}
+</Button>
         </form>
       </div>
     </div>

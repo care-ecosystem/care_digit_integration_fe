@@ -14,6 +14,9 @@ import { Textarea } from "./components/ui/textarea";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { I18NNAMESPACE } from "@/lib/constants";
+import { getToken } from "@/lib/utils";
+import { apiFetch } from "@/lib/api/client";
+import { ENDPOINTS } from "@/lib/api/endpoints";
 
 interface FormPopupProps {
   onClose: () => void;
@@ -31,7 +34,7 @@ const ALLOWED_TYPES = new Set([
   "image/webp",
   "image/gif",
 ]);
-
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
 function usePluginFacilityId() {
   if (typeof window === "undefined") return undefined;
   const segments = window.location.pathname.split("/");
@@ -71,18 +74,10 @@ export default function FormPopup({
   const { data: issueOptions = [] } = useQuery({
     queryKey: ["service-codes", facilityId],
     queryFn: async () => {
-      const token = localStorage.getItem("care_access_token");
-      const res = await fetch(
-        `http://localhost:9000/api/care_digit_integration/internal/service-codes/?facility_id=${facilityId}&workflow=system`,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            ...(token && { Authorization: `Bearer ${token}` }),
-          },
-        }
-      );
-      const data = await res.json();
-      if (!res.ok) throw new Error("API error");
+      const token = getToken();
+      const data = await apiFetch(
+  `${API_BASE}${ENDPOINTS.SERVICE_CODES}?facility_id=${facilityId}&workflow=system`
+);
       return (data.service_codes || []) as string[];
     },
     enabled: !!facilityId,
@@ -133,20 +128,14 @@ export default function FormPopup({
     formData.append("file", file);
     formData.append("tenantId", "mz");
     formData.append("module", "care-pgr");
-
-    const token = localStorage.getItem("care_access_token");
-    const res = await fetch(
-      "http://localhost:9000/api/care_digit_integration/filestore/upload/",
-      {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      }
-    );
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data?.message || "Filestore upload failed");
-
+    const data = await apiFetch(
+  `${API_BASE}${ENDPOINTS.FILE_UPLOAD}`,
+  {
+    method: "POST",
+    body: formData,
+    headers: {}, // important: let apiFetch handle token
+  }
+);
     return {
       fileStoreId: data?.fileStoreId || data?.files?.[0]?.fileStoreId,
       tenantId: data?.tenantId || "mz",
@@ -165,7 +154,7 @@ export default function FormPopup({
 
   const getUserFromToken = () => {
     try {
-      const token = localStorage.getItem("care_access_token");
+      const token = getToken();
       if (!token) return null;
       return JSON.parse(atob(token.split(".")[1]));
     } catch {
@@ -197,7 +186,7 @@ export default function FormPopup({
         allFiles.map((file) => uploadToFileStore(file))
       );
 
-      const token = localStorage.getItem("care_access_token");
+     const token = getToken();
 
       const filestore_uploads = uploadedFiles
         .filter((f) => f?.fileStoreId)
@@ -217,42 +206,27 @@ export default function FormPopup({
         source: getSource(),
       };
 
-      const res = await fetch(
-        "http://localhost:9000/api/care_digit_integration/pgr/complaints/",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token && { Authorization: `Bearer ${token}` }),
-          },
-          body: JSON.stringify(complaintPayload),
-        }
-      );
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        console.error("PGR API error:", data);
-        //toast.error("Failed to submit issue. Please try again."); 
-        toast.error(t("submit_error"));
-        setHasError(true);
-        return;
-      }
+      const data = await apiFetch(
+  `${API_BASE}${ENDPOINTS.CREATE_COMPLAINT}`,
+  {
+    method: "POST",
+    body: JSON.stringify(complaintPayload),
+  }
+);
 
       console.log("Complaint Created Successfully:", data);
 
-      // ✅ only clear on success, via parent
       setTitle("");
       setDescription("");
       setFileError(false);
       toast.success(t("submit_success"));
-      onSubmitSuccess(); // clears files + screenshots in parent and closes
+      onSubmitSuccess(); 
     } catch (err) {
       console.error("Upload error:", err);
-      toast.error(t("upload_error"));// ✅ added
+      toast.error(t("upload_error"));
       setHasError(true);
     } finally {
-    setIsSubmitting(false); // 🔓 3. Unlock ALWAYS
+    setIsSubmitting(false); 
   }
   };
 

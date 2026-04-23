@@ -33,9 +33,13 @@ export function FacilityDropdown({
 
   const allFacilities: Facility[] = data?.results ?? [];
 
+  const filteredFacilities = allFacilities.filter((f) =>
+    f.name.toLowerCase().includes(search.toLowerCase())
+  );
+
   const facilities = allowedIds
-    ? allFacilities.filter((f) => allowedIds.includes(f.id))
-    : allFacilities;
+    ? filteredFacilities.filter((f) => allowedIds.includes(f.id))
+    : filteredFacilities;
 
   const selected = facilities.find((f) => f.id === value);
 

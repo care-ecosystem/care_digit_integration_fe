@@ -1,4 +1,5 @@
 import { lazy } from "react";
+import hi from "../public/locale/hi.json"
 
 const manifest = {
   plugin: "care_issue_management",
@@ -9,6 +10,9 @@ const manifest = {
     ),
   },
   navItems: [],
+  i18n: {
+    hi,
+  },
 };
 
 export default manifest;

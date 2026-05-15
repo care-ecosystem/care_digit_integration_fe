@@ -5,6 +5,7 @@ import react from "@vitejs/plugin-react-swc";
 import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
+  // base: "http://localhost:5173/",
   plugins: [
     federation({
       name: "care_issue_management",

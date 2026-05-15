@@ -15,6 +15,7 @@ import { Button } from "./components/ui/button";
 import { useScreenCapture } from "./hooks/useScreenCapture";
 import FormPopup from "./FormPopup";
 import IssueListPopup from "./IssueListPopup";
+import ComplaintHomePage from "@/components/pages/ComplaintHomePage";
 
 function IssueManagementWidget({
   onCaptureCB,
@@ -76,8 +77,6 @@ export default function App() {
   const { capture } = useScreenCapture();
   const [isIssueListOpen, setIsIssueListOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
-
-  // ✅ lifted up — survives close/reopen
   const [files, setFiles] = useState<File[]>([]);
   const [capturedScreenshots, setCapturedScreenshots] = useState<string[]>([]);
 
@@ -93,7 +92,6 @@ export default function App() {
   const handleFormClose = () => setIsFormOpen(false);
 
   const handleFormSubmitSuccess = () => {
-    // ✅ only clear after successful submit (called from FormPopup)
     setFiles([]);
     setCapturedScreenshots([]);
     setIsFormOpen(false);
@@ -103,11 +101,15 @@ export default function App() {
     <div className="care-issue-management-fe-container">
       <Toaster position="top-right" richColors expand theme="light" />
 
+      {/* Branch 2: ComplaintHomePage */}
+      <ComplaintHomePage />
+
+      {/* Branch 1: Issue Management Widget */}
       <IssueManagementWidget
-  onCaptureCB={handleCaptureScreenShot}
-  onOpenForm={() => setIsFormOpen(true)}
-  onOpenIssueList={() => setIsIssueListOpen(true)}
-/>
+        onCaptureCB={handleCaptureScreenShot}
+        onOpenForm={() => setIsFormOpen(true)}
+        onOpenIssueList={() => setIsIssueListOpen(true)}
+      />
 
       {isFormOpen && (
         <FormPopup
@@ -120,8 +122,8 @@ export default function App() {
         />
       )}
       {isIssueListOpen && (
-  <IssueListPopup onClose={() => setIsIssueListOpen(false)} />
-)}
+        <IssueListPopup onClose={() => setIsIssueListOpen(false)} />
+      )}
     </div>
   );
 }

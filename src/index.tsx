@@ -13,3 +13,5 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     </QueryClientProvider>
   </React.StrictMode>
 );
+export { default as manifest } from "@/manifest";
+export { default as routes } from "@/routes";

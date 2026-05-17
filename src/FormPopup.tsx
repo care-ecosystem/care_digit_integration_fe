@@ -34,6 +34,7 @@ const ALLOWED_TYPES = new Set([
   "image/webp",
   "image/gif",
 ]);
+
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 function usePluginFacilityId() {
   if (typeof window === "undefined") return undefined;
@@ -46,7 +47,6 @@ function usePluginFacilityId() {
 }
 
 export default function FormPopup({
-
   onClose,
   onSubmitSuccess,
   files,
@@ -54,30 +54,27 @@ export default function FormPopup({
   capturedScreenshots,
   setCapturedScreenshots,
 }: FormPopupProps) {
-  const [title, setTitle] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false); // ✅ ADDED
+  const [issueType, setIssueType] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [description, setDescription] = useState("");
   const [fileError, setFileError] = useState(false);
   const [hasError, setHasError] = useState(false);
   const facilityId = usePluginFacilityId();
   const filesRef = useRef<File[]>(files);
-  const { t } = useTranslation(I18NNAMESPACE);
+  const { t, i18n } = useTranslation(I18NNAMESPACE);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const ISSUE_LABELS: Record<string, string> = {
-  TechnicalIssues: t("Technical Issues"),
-  Other: t("other"),
-  PerformanceIssue: t("Performance Issue"),
-  Data: t("Data Issue"),
-  SecurityIssues: t("Security Issues"),
-};
-  
+
+  const getIssueLabel = (issue: string) => {
+    return t(issue);
+  };
+
   const { data: issueOptions = [] } = useQuery({
     queryKey: ["service-codes", facilityId],
     queryFn: async () => {
       const token = getToken();
       const data = await apiFetch(
-  `${API_BASE}${ENDPOINTS.SERVICE_CODES}?facility_id=${facilityId}&workflow=system`
-);
+        `${API_BASE}${ENDPOINTS.SERVICE_CODES}?facility_id=${facilityId}&workflow=system`,
+      );
       return (data.service_codes || []) as string[];
     },
     enabled: !!facilityId,
@@ -86,7 +83,9 @@ export default function FormPopup({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const selected = Array.from(e.target.files);
-      const validFiles = selected.filter((file) => ALLOWED_TYPES.has(file.type));
+      const validFiles = selected.filter((file) =>
+        ALLOWED_TYPES.has(file.type),
+      );
       setFileError(validFiles.length < selected.length);
       setFiles((prev) => {
         const updated = [...prev, ...validFiles];
@@ -126,19 +125,16 @@ export default function FormPopup({
   const uploadToFileStore = async (file: File) => {
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("tenantId", "mz");
-    formData.append("module", "care-pgr");
-    const data = await apiFetch(
-  `${API_BASE}${ENDPOINTS.FILE_UPLOAD}`,
-  {
-    method: "POST",
-    body: formData,
-    headers: {}, // important: let apiFetch handle token
-  }
-);
+    formData.append("facility_id", facilityId || "");
+    formData.append("workflow", "system");
+    const data = await apiFetch(`${API_BASE}${ENDPOINTS.FILE_UPLOAD}`, {
+      method: "POST",
+      body: formData,
+      headers: {},
+    });
     return {
       fileStoreId: data?.fileStoreId || data?.files?.[0]?.fileStoreId,
-      tenantId: data?.tenantId || "mz",
+      tenantId: data?.tenantId || data?.files?.[0]?.tenantId,
     };
   };
 
@@ -177,16 +173,16 @@ export default function FormPopup({
     setIsSubmitting(true);
     try {
       const screenshotFiles = capturedScreenshots.map((src, idx) =>
-        dataURLtoFile(src, `screenshot-${idx}.png`)
+        dataURLtoFile(src, `screenshot-${idx}.png`),
       );
 
       const allFiles = [...filesRef.current, ...screenshotFiles];
 
       const uploadedFiles = await Promise.all(
-        allFiles.map((file) => uploadToFileStore(file))
+        allFiles.map((file) => uploadToFileStore(file)),
       );
 
-     const token = getToken();
+      const token = getToken();
 
       const filestore_uploads = uploadedFiles
         .filter((f) => f?.fileStoreId)
@@ -196,7 +192,7 @@ export default function FormPopup({
         facility: facilityId,
         reporter: user?.user_id || null,
         workflow: "system",
-        service_code: title,
+        service_code: issueType,
         app_context: {
           Platform: navigator.platform,
           Browser: navigator.userAgent,
@@ -206,34 +202,31 @@ export default function FormPopup({
         source: getSource(),
       };
 
-      const data = await apiFetch(
-  `${API_BASE}${ENDPOINTS.CREATE_COMPLAINT}`,
-  {
-    method: "POST",
-    body: JSON.stringify(complaintPayload),
-  }
-);
+      const data = await apiFetch(`${API_BASE}${ENDPOINTS.CREATE_COMPLAINT}`, {
+        method: "POST",
+        body: JSON.stringify(complaintPayload),
+      });
 
       console.log("Complaint Created Successfully:", data);
 
-      setTitle("");
+      setIssueType("");
       setDescription("");
       setFileError(false);
       toast.success(t("submit_success"));
-      onSubmitSuccess(); 
+      onSubmitSuccess();
     } catch (err) {
       console.error("Upload error:", err);
       toast.error(t("upload_error"));
       setHasError(true);
     } finally {
-    setIsSubmitting(false); 
-  }
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div
-  className="
+        className="
     bg-white
     rounded-xl
     p-4 sm:p-6 md:p-8
@@ -243,9 +236,9 @@ export default function FormPopup({
     relative
     shadow-2xl
     flex flex-col
-    gap-4 sm:gap-5 md:gap-6 
+    gap-4 sm:gap-5 md:gap-6
   "
->
+      >
         <Button
           variant="ghost"
           className="absolute top-2 right-2 sm:top-3 sm:right-3 p-2 text-gray-500 hover:text-gray-800 hover:bg-gray-100"
@@ -254,19 +247,23 @@ export default function FormPopup({
           ✕
         </Button>
 
-        <h2 className="text-lg sm:text-xl md:text-2xl font-semibold text-center"></h2>
+        <h2 className="text-lg sm:text-xl md:text-2xl font-semibold text-center">
+          {t("report_issue")}
+        </h2>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 sm:gap-5">
           <div className="flex flex-col gap-2">
-            <Label className="text-sm font-medium">{t("title")}</Label>
-            <Select value={title} onValueChange={setTitle}>
+            <Label className="text-sm font-medium">
+              {t("issue_type_label")}
+            </Label>
+            <Select value={issueType} onValueChange={setIssueType}>
               <SelectTrigger className="w-full">
-                <SelectValue placeholder={t("title_placeholder")} />
+                <SelectValue placeholder={t("issue_type_placeholder")} />
               </SelectTrigger>
               <SelectContent>
                 {issueOptions.map((issue, idx) => (
                   <SelectItem key={idx} value={issue}>
-                    {ISSUE_LABELS[issue] || issue}
+                    {getIssueLabel(issue)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -274,9 +271,11 @@ export default function FormPopup({
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label className="text-sm font-medium">{t("description")}</Label>
+            <Label className="text-sm font-medium">
+              {t("issue_description")}
+            </Label>
             <Textarea
-              placeholder={t("description_placeholder")}
+              placeholder={t("issue_description_placeholder")}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={4}
@@ -285,7 +284,7 @@ export default function FormPopup({
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label className="text-sm font-medium">{t("Attach Files")}</Label>
+            <Label className="text-sm font-medium">{t("attach_files")}</Label>
             {/* <Input
               type="file"
               multiple
@@ -305,13 +304,11 @@ export default function FormPopup({
               onClick={() => fileInputRef.current?.click()}
               className="w-full sm:w-auto bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300"
             >
-              {t("Choose Files")}
+              {t("choose_files")}
             </Button>
-            
+
             {fileError && (
-              <p className="text-xs text-red-500">
-                {t("File Error")}
-              </p>
+              <p className="text-xs text-red-500">{t("file_error")}</p>
             )}
 
             {previewItems.length > 0 && (
@@ -335,7 +332,7 @@ export default function FormPopup({
 
                     {item.kind === "screenshot" && (
                       <span className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[10px] text-center py-0.5">
-                        {t("Screenshot")}
+                        {t("screenshot")}
                       </span>
                     )}
 
@@ -356,19 +353,24 @@ export default function FormPopup({
             )}
           </div>
 
-          <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
-  {isSubmitting ? (
-    <span className="flex items-center gap-2">
-      {/* 🔄 Spinner */}
-      <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-      
-      {/* 📝 Text */}
-      {t("Submitting...")}
-    </span>
-  ) : (
-    t("Submit Button")
-  )}
-</Button>
+          <Button
+            type="submit"
+            variant="primary"
+            disabled={isSubmitting || !issueType || !description.trim()}
+            className="w-full sm:w-auto"
+          >
+            {isSubmitting ? (
+              <span className="flex items-center gap-2">
+                {/* :arrows_counterclockwise: Spinner */}
+                <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+
+                {/* :memo: Text */}
+                {t("submitting_issue")}
+              </span>
+            ) : (
+              t("submit_issue")
+            )}
+          </Button>
         </form>
       </div>
     </div>

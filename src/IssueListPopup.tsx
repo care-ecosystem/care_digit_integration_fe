@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Button } from "./components/ui/button";
-import { useTranslation } from "react-i18next"; // ✅ ADDED 
-import { I18NNAMESPACE } from "@/lib/constants"; // ✅ ADDED
+import { useTranslation } from "react-i18next"; // :white_check_mark: ADDED
+import { I18NNAMESPACE } from "@/lib/constants"; // :white_check_mark: ADDED
 interface Complaint {
   id: number;
   pgr_ticket_id: string | null;
@@ -11,15 +11,11 @@ interface Complaint {
   created_date: string;
 }
 
-export default function IssueListPopup({
-  onClose,
-}: {
-  onClose: () => void;
-}) {
+export default function IssueListPopup({ onClose }: { onClose: () => void }) {
   const [data, setData] = useState<Complaint[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const { t } = useTranslation(I18NNAMESPACE); // ✅ ADDED
+  const { t } = useTranslation(I18NNAMESPACE); // :white_check_mark: ADDED
   const fetchComplaints = async () => {
     setLoading(true);
     setError("");
@@ -37,7 +33,7 @@ export default function IssueListPopup({
               Authorization: `Bearer ${token}`,
             }),
           },
-        }
+        },
       );
 
       const json = await res.json();
@@ -45,13 +41,12 @@ export default function IssueListPopup({
       if (!res.ok) {
         throw new Error(json?.detail || "Failed to fetch complaints");
       }
-      // ✅ FIXED: actually use filtered data const filteredData = (json?.results || []).filter( (item: Complaint) => item.workflow?.toLowerCase() === "system" );
+      // :white_check_mark: FIXED: actually use filtered data const filteredData = (json?.results || []).filter( (item: Complaint) => item.workflow?.toLowerCase() === "system" );
       const filteredData = (json?.results || []).filter(
-        (item: Complaint) =>
-          item.workflow?.toLowerCase() === "system"
+        (item: Complaint) => item.workflow?.toLowerCase() === "system",
       );
-    
-setData(filteredData); // 🔴 FIXED
+
+      setData(filteredData); // :red_circle: FIXED
     } catch (err: any) {
       setError(err.message || "Something went wrong");
     } finally {
@@ -75,17 +70,16 @@ setData(filteredData); // 🔴 FIXED
         return "bg-gray-100 text-gray-700";
     }
   };
-   const SERVICE_CODE_LABELS: Record<string, string> = {
-  TechnicalIssues: t("Technical Issues"),
-  Other: t("other"),
-  PerformanceIssue: t("Performance Issue"),
-  Data: t("Data Issue"),
-  SecurityIssues: t("Security Issues"),
-}; 
+  const SERVICE_CODE_LABELS: Record<string, string> = {
+    TechnicalIssues: t("Technical Issues"),
+    Other: t("other"),
+    PerformanceIssue: t("Performance Issue"),
+    Data: t("Data Issue"),
+    SecurityIssues: t("Security Issues"),
+  };
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white rounded-xl p-6 w-[900px] max-w-full shadow-2xl relative">
-
         {/* Close Button */}
         <Button
           className="absolute top-3 right-3"
@@ -95,22 +89,14 @@ setData(filteredData); // 🔴 FIXED
           ✕
         </Button>
 
-        <h2 className="text-xl font-semibold mb-4">
-          {t("Complaints List")}
-        </h2>
+        <h2 className="text-xl font-semibold mb-4">{t("Complaints List")}</h2>
 
-        {/* 🔴 CHANGE 2: translated loading */}
-        {loading && (
-          <p className="text-gray-500">
-            {t("Loading complaints")}
-          </p>
-        )}
+        {/* :red_circle: CHANGE 2: translated loading */}
+        {loading && <p className="text-gray-500">{t("Loading complaints")}</p>}
 
-        {/* 🔴 CHANGE 3: translated error */}
+        {/* :red_circle: CHANGE 3: translated error */}
         {error && (
-          <p className="text-red-500">
-            {t("Error fetching complaints")}
-          </p>
+          <p className="text-red-500">{t("Error fetching complaints")}</p>
         )}
 
         {/* Table */}
@@ -129,43 +115,39 @@ setData(filteredData); // 🔴 FIXED
 
               <tbody>
                 {data
-  .filter((item) => item.workflow?.toLowerCase() === "system") // 🔥 FORCE FILTER
-  .map((item) => (
-                  <tr key={item.id} className="border-t hover:bg-gray-50">
+                  .filter((item) => item.workflow?.toLowerCase() === "system") // :fire: FORCE FILTER
+                  .map((item) => (
+                    <tr key={item.id} className="border-t hover:bg-gray-50">
+                      <td className="p-2">{item.pgr_ticket_id || "-"}</td>
 
-                    <td className="p-2">
-                      {item.pgr_ticket_id || "-"}
-                    </td>
+                      <td className="p-2">
+                        {SERVICE_CODE_LABELS[item.service_code] ||
+                          item.service_code}
+                      </td>
 
-                     <td className="p-2">
-  {SERVICE_CODE_LABELS[item.service_code] || item.service_code}
-</td>
-                    
-                    {/* 🔴 CHANGE 6: WORKFLOW TRANSLATED */}
-                    <td className="p-2">
-                      {t(item.workflow, item.workflow)}
-                    </td>
+                      {/* :red_circle: CHANGE 6: WORKFLOW TRANSLATED */}
+                      <td className="p-2">{t(item.workflow, item.workflow)}</td>
 
-                     {/* 🔴 CHANGE 7: STATUS TRANSLATED */}
-                    <td className="p-2">
-                      <span
-                        className={`px-2 py-1 rounded text-xs ${getStatusColor(
-                          item.pgr_status
-                        )}`}
-                      >
-                        {t(item.pgr_status, item.pgr_status)}
-                      </span>
-                    </td>
+                      {/* :red_circle: CHANGE 7: STATUS TRANSLATED */}
+                      <td className="p-2">
+                        <span
+                          className={`px-2 py-1 rounded text-xs ${getStatusColor(
+                            item.pgr_status,
+                          )}`}
+                        >
+                          {t(item.pgr_status, item.pgr_status)}
+                        </span>
+                      </td>
 
-                    <td className="p-2">
-                      {new Date(item.created_date).toLocaleString()}
-                    </td>
-                  </tr>
-                ))}
+                      <td className="p-2">
+                        {new Date(item.created_date).toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
               </tbody>
             </table>
 
-            {/* 🔴 CHANGE 8: empty state translated */}
+            {/* :red_circle: CHANGE 8: empty state translated */}
             {data.length === 0 && (
               <p className="p-4 text-center text-gray-500">
                 {t("No complaints found")}

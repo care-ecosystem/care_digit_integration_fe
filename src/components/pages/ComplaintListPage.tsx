@@ -75,19 +75,15 @@ const ComplaintListPage: FC<ComplaintListPageProps> = ({ patientId }) => {
     queryKey: ["complaints", patientId, page],
     queryFn: () =>
       apis.complaints.list(
-        patientId ? { patient: patientId, limit, offset } : { limit, offset }
+        patientId ? { patient: patientId, limit, offset } : { limit, offset },
       ),
-    keepPreviousData: true,
   });
 
-  const totalPages = data?.count
-    ? Math.ceil(data.count / 10)
-    : 1;
+  const totalPages = data?.count ? Math.ceil(data.count / 10) : 1;
 
   return (
     <div className="care-issue-management-fe-container">
       <div className="mx-auto max-w-2xl w-full px-4 py-6 space-y-5">
-        
         {/* Header */}
         <div className="flex items-center gap-3">
           <Button
@@ -166,14 +162,14 @@ const ComplaintListPage: FC<ComplaintListPageProps> = ({ patientId }) => {
                       <CardContent className="space-y-2 p-4">
                         <div className="flex items-start justify-between gap-3">
                           <span className="text-sm font-medium text-secondary-900 leading-snug">
-                            {displayTitle}
+                            {t(displayTitle)}
                           </span>
 
                           <span
                             className={`inline-flex shrink-0 items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium ${cfg.classes}`}
                           >
                             <Icon className="size-3" />
-                            {cfg.label}
+                            {t(cfg.label)}
                           </span>
                         </div>
 
@@ -190,11 +186,14 @@ const ComplaintListPage: FC<ComplaintListPageProps> = ({ patientId }) => {
                         )}
 
                         <p className="text-xs text-secondary-800">
-                          {new Date(c.created_date).toLocaleDateString(undefined, {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
-                          })}
+                          {new Date(c.created_date).toLocaleDateString(
+                            undefined,
+                            {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            },
+                          )}
                         </p>
                       </CardContent>
                     </Card>

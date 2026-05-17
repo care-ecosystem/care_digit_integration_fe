@@ -5,7 +5,13 @@ import { Facility } from "@/types/facility";
 
 export const apis = {
   complaints: {
-    list: async (query?: { patient?: string; status?: string; page?: number }) => {
+    list: async (query?: {
+      patient?: string;
+      status?: string;
+      page?: number;
+      limit?: number;
+      offset?: number;
+    }) => {
       return await request<PaginatedResponse<Complaint>>(
         "/api/care_digit_integration/pgr/complaints/" + queryString(query), //+ queryString(query)
       );
@@ -43,7 +49,6 @@ export const apis = {
   },
 
   facilities: {
-
     list: async () => {
       const res = await request<any>("/api/v1/otp/slots/get_appointments/", {
         method: "GET",
@@ -68,7 +73,7 @@ export const apis = {
         `/api/v1/otp/slots/get_appointments/${id}/`,
         {
           method: "GET",
-        }
+        },
       );
     },
   },
@@ -92,18 +97,18 @@ export const apis = {
     },
   },
   filestore: {
-    upload: async (files: File[]) => {
+    upload: async (files: File[], facilityId: string, workflow: string) => {
       const formData = new FormData();
 
       files.forEach((file) => {
         formData.append("file", file);
       });
 
-      formData.append("tenantId", "mz");
-      formData.append("module", "care-pgr");
+      formData.append("facility_id", facilityId || "");
+      formData.append("workflow", workflow);
 
       return await request<{
-        filestore_uploads: string[];
+        files: { fileStoreId: string; tenantId: string }[];
       }>("/api/care_digit_integration/filestore/upload/", {
         method: "POST",
         body: formData,

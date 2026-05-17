@@ -45,7 +45,7 @@ export default defineConfig({
     },
   },
   server: {
-    port: 5173,
+    port: 5174,
     host: "0.0.0.0",
     cors: true,
     headers: {
@@ -55,7 +55,7 @@ export default defineConfig({
     },
   },
   preview: {
-    port: 5173,
+    port: 5174,
     allowedHosts: true,
     host: "0.0.0.0",
     cors: true,

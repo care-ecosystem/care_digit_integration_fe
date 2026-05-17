@@ -62,9 +62,7 @@ const ComplaintCreatePage: FC<ComplaintCreatePageProps> = ({ patientId }) => {
 
   const goToList = () => {
     navigate(
-      patientId
-        ? `/patient/${patientId}/complaints/list`
-        : "/complaints/list",
+      patientId ? `/patient/${patientId}/complaints/list` : "/complaints/list",
     );
   };
 
@@ -96,7 +94,11 @@ const ComplaintCreatePage: FC<ComplaintCreatePageProps> = ({ patientId }) => {
 
       if (filePreviews.length > 0) {
         const files = filePreviews.map((f) => f.file);
-        const res = await apis.filestore.upload(files);
+        const res = await apis.filestore.upload(
+          files,
+          facilityId,
+          "healthservice",
+        );
 
         if (!res?.files?.length) {
           throw new Error("File upload failed");
@@ -132,7 +134,6 @@ const ComplaintCreatePage: FC<ComplaintCreatePageProps> = ({ patientId }) => {
       toast.success(t("complaint_submitted"));
       queryClient.invalidateQueries({ queryKey: ["complaints"] });
       goToList();
-
     } catch (err: any) {
       console.error(err);
 
@@ -153,7 +154,6 @@ const ComplaintCreatePage: FC<ComplaintCreatePageProps> = ({ patientId }) => {
   return (
     <div className="care-issue-management-fe-container">
       <div className="mx-auto max-w-2xl w-full px-4 py-6 space-y-5">
-
         {/* Header */}
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={goBack}>
@@ -175,9 +175,8 @@ const ComplaintCreatePage: FC<ComplaintCreatePageProps> = ({ patientId }) => {
         {/* Form Card */}
         <Card>
           <CardContent className="p-5">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <fieldset disabled={isSubmitting}>
-
+            <form onSubmit={handleSubmit}>
+              <fieldset disabled={isSubmitting} className="space-y-4">
                 <FacilityDropdown
                   value={facilityId}
                   onChange={handleFacilityChange}
@@ -198,9 +197,7 @@ const ComplaintCreatePage: FC<ComplaintCreatePageProps> = ({ patientId }) => {
                     <SelectTrigger className="w-full">
                       <SelectValue
                         placeholder={
-                          loadingCodes
-                            ? "Loading..."
-                            : "Select Service Type"
+                          loadingCodes ? "Loading..." : "Select Service Type"
                         }
                       />
                     </SelectTrigger>
@@ -208,7 +205,7 @@ const ComplaintCreatePage: FC<ComplaintCreatePageProps> = ({ patientId }) => {
                     <SelectContent>
                       {serviceCodes.map((code: string) => (
                         <SelectItem key={code} value={code}>
-                          {code}
+                          {t(code)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -261,12 +258,9 @@ const ComplaintCreatePage: FC<ComplaintCreatePageProps> = ({ patientId }) => {
                       <PlusCircleIcon className="size-4" />
                     )}
 
-                    {isSubmitting
-                      ? "Submitting..."
-                      : t("submit_complaint")}
+                    {isSubmitting ? "Submitting..." : t("submit_complaint")}
                   </Button>
                 </div>
-
               </fieldset>
             </form>
           </CardContent>

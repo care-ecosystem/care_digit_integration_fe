@@ -4,7 +4,7 @@
   "description": "",
   "main": "src/index.ts",
   "scripts": {
-    "start": "vite build --watch & vite preview --port 5173",
+    "start": "vite build --watch & vite preview --port 5174",
     "build": "vite build",
     "preview": "vite preview",
     "dev": "vite preview & vite build --watch"

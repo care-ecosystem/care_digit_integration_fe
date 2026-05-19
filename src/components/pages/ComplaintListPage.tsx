@@ -11,7 +11,7 @@ import { useTranslation } from "react-i18next";
 import { navigate } from "raviger";
 import { Button } from "@/components/ui/button";
 import { I18NNAMESPACE } from "@/lib/constants";
-import { apis } from "@/apis";
+import { apis, apis_new } from "@/apis";
 import type { Complaint } from "@/types/complaint";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -73,10 +73,7 @@ const ComplaintListPage: FC<ComplaintListPageProps> = ({ patientId }) => {
 
   const { data, isLoading, isError, isFetching } = useQuery({
     queryKey: ["complaints", patientId, page],
-    queryFn: () =>
-      apis.complaints.list(
-        patientId ? { patient: patientId, limit, offset } : { limit, offset },
-      ),
+    queryFn: () => apis_new.complaints.list(offset, limit, patientId),
   });
 
   const totalPages = data?.count ? Math.ceil(data.count / 10) : 1;
@@ -84,7 +81,6 @@ const ComplaintListPage: FC<ComplaintListPageProps> = ({ patientId }) => {
   return (
     <div className="care-issue-management-fe-container">
       <div className="mx-auto max-w-2xl w-full px-4 py-6 space-y-5">
-        {/* Header */}
         <div className="flex items-center gap-3">
           <Button
             variant="ghost"
@@ -106,7 +102,6 @@ const ComplaintListPage: FC<ComplaintListPageProps> = ({ patientId }) => {
 
         <div className="border-t border-secondary-200" />
 
-        {/* Loading */}
         {isLoading && (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
@@ -132,7 +127,6 @@ const ComplaintListPage: FC<ComplaintListPageProps> = ({ patientId }) => {
           </Card>
         )}
 
-        {/* Empty */}
         {!isLoading && !isError && !data?.results?.length && (
           <Card className="border-dashed border-secondary-300 text-center">
             <CardContent className="px-4 py-10">
@@ -147,7 +141,6 @@ const ComplaintListPage: FC<ComplaintListPageProps> = ({ patientId }) => {
           </Card>
         )}
 
-        {/* List */}
         {!isLoading && !isError && !!data?.results?.length && (
           <>
             <ul className="space-y-3">
@@ -202,7 +195,6 @@ const ComplaintListPage: FC<ComplaintListPageProps> = ({ patientId }) => {
               })}
             </ul>
 
-            {/* Pagination */}
             <div className="flex items-center justify-between pt-4">
               <Button
                 variant="outline"

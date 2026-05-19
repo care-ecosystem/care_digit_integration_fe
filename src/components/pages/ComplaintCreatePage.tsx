@@ -1,18 +1,18 @@
-import { FC, useState, useEffect } from "react";
-import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { FC, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PlusCircleIcon, Loader2Icon, ChevronLeftIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { navigate, useQueryParams } from "raviger";
+import { navigate } from "raviger";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { FacilityDropdown } from "@/components/common/FacilityDropdown";
+import { useFacilities } from "@/hooks/useFacilities";
 import {
   FileUploadZone,
   FilePreview,
 } from "@/components/common/FileUploadZone";
 import { I18NNAMESPACE } from "@/lib/constants";
-import { apis } from "@/apis";
+import { apis_new, apis } from "@/apis";
 import { Card, CardContent } from "@/components/ui/card";
 
 import {
@@ -27,134 +27,155 @@ interface ComplaintCreatePageProps {
   patientId?: string;
 }
 
+interface CreateComplaintPayload {
+  facilityId: string;
+  serviceCode: string;
+  description: string;
+  files: FilePreview[];
+  patientId?: string;
+}
+
+const getSource = () => {
+  const ua = navigator.userAgent.toLowerCase();
+
+  return /android|iphone|ipad|mobile/.test(ua) ? "mobile" : "web";
+};
+
+const createComplaint = async ({
+  facilityId,
+  serviceCode,
+  description,
+  files,
+  patientId,
+}: CreateComplaintPayload) => {
+  let filestoreUploads: {
+    fileStoreId: string;
+    tenantId: string;
+  }[] = [];
+
+  if (files.length > 0) {
+    const formData = new FormData();
+
+    files.forEach((preview) => {
+      formData.append("file", preview.file);
+    });
+
+    formData.append("facility_id", facilityId);
+    formData.append("workflow", "healthservice");
+
+    const uploadRes = await apis_new.filestore.upload(formData);
+
+    if (!uploadRes?.files?.length) {
+      throw new Error("File upload failed");
+    }
+
+    filestoreUploads = uploadRes.files.map((file) => ({
+      fileStoreId: file.fileStoreId,
+      tenantId: file.tenantId,
+    }));
+  }
+
+  return apis_new.complaints.create({
+    facility: facilityId,
+    reporter: patientId,
+    workflow: "healthservice",
+    service_code: serviceCode,
+    description: description.trim(),
+    source: getSource(),
+    app_context: {
+      Platform: navigator.platform,
+      Browser: navigator.userAgent,
+    },
+    filestore_uploads: filestoreUploads,
+  });
+};
+
 const ComplaintCreatePage: FC<ComplaintCreatePageProps> = ({ patientId }) => {
   const { t } = useTranslation(I18NNAMESPACE);
+
   const queryClient = useQueryClient();
 
-  const [queryParams, setQueryParams] = useQueryParams<{
-    facilityId?: string;
-  }>();
-
+  const [facilityId, setFacilityId] = useState("");
   const [serviceCode, setServiceCode] = useState("");
   const [description, setDescription] = useState("");
   const [filePreviews, setFilePreviews] = useState<FilePreview[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const facilityId = queryParams.facilityId ?? "";
+  const { facilities } = useFacilities();
 
   const { data: serviceCodes = [], isLoading: loadingCodes } = useQuery({
     queryKey: ["service-codes", facilityId],
-    queryFn: () => apis.serviceCodes.list(facilityId),
+    queryFn: () => apis_new.serviceCodes.list(facilityId, "healthservice"),
     enabled: !!facilityId,
   });
 
-  useEffect(() => {
-    setServiceCode("");
-  }, [facilityId]);
+  const complaintMutation = useMutation({
+    mutationKey: ["create-complaint"],
 
-  const handleFacilityChange = (id: string) => {
-    setQueryParams({ ...queryParams, facilityId: id });
+    mutationFn: createComplaint,
+
+    onSuccess: async () => {
+      toast.success(t("complaint_submitted"));
+
+      await queryClient.invalidateQueries({
+        queryKey: ["complaints"],
+      });
+
+      navigate(
+        patientId
+          ? `/patient/${patientId}/complaints/list`
+          : "/complaints/list",
+      );
+    },
+
+    onError: (err: any) => {
+      console.error(err);
+
+      const errorMessage =
+        err?.response?.data?.detail ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "Something went wrong";
+
+      toast.error(errorMessage);
+    },
+  });
+
+  const handleFacilityChange = (value: string) => {
+    setFacilityId(value);
+
+    setServiceCode("");
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!facilityId || !serviceCode || !description.trim()) {
+      toast.error("Please fill all required fields");
+
+      return;
+    }
+
+    complaintMutation.mutate({
+      facilityId,
+      serviceCode,
+      description,
+      files: filePreviews,
+      patientId,
+    });
   };
 
   const goBack = () => {
     navigate(patientId ? `/patient/${patientId}/complaints` : "/complaints");
   };
 
-  const goToList = () => {
-    navigate(
-      patientId ? `/patient/${patientId}/complaints/list` : "/complaints/list",
-    );
-  };
+  const isSubmitting = complaintMutation.isPending;
 
-  const { mutateAsync: submit } = useMutation({
-    mutationFn: apis.complaints.create,
-  });
-
-  const getSource = () => {
-    const ua = navigator.userAgent.toLowerCase();
-    return /android|iphone|ipad|mobile/.test(ua) ? "mobile" : "web";
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (isSubmitting) return;
-
-    if (!serviceCode || !facilityId || !description.trim()) {
-      toast.error("Please fill all required fields");
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      let filestoreUploads: {
-        fileStoreId: string;
-        tenantId: string;
-      }[] = [];
-
-      if (filePreviews.length > 0) {
-        const files = filePreviews.map((f) => f.file);
-        const res = await apis.filestore.upload(
-          files,
-          facilityId,
-          "healthservice",
-        );
-
-        if (!res?.files?.length) {
-          throw new Error("File upload failed");
-        }
-
-        // ✅ Direct mapping (no transformation needed)
-        filestoreUploads = res.files.map((f: any) => ({
-          fileStoreId: f.fileStoreId,
-          tenantId: f.tenantId,
-        }));
-      }
-
-      const payload = {
-        facility: facilityId,
-        reporter: patientId,
-        workflow: "healthservice",
-        service_code: serviceCode,
-        description: description.trim(),
-        source: getSource(),
-        app_context: {
-          Platform: navigator.platform,
-          Browser: navigator.userAgent,
-        },
-
-        // ✅ IMPORTANT: send full objects, not just IDs
-        filestore_uploads: filestoreUploads,
-      };
-
-      console.log("FINAL PAYLOAD", payload);
-
-      await submit(payload);
-
-      toast.success(t("complaint_submitted"));
-      queryClient.invalidateQueries({ queryKey: ["complaints"] });
-      goToList();
-    } catch (err: any) {
-      console.error(err);
-
-      // ✅ Better DRF error handling
-      const errorMessage =
-        err?.response?.data?.detail ||
-        err?.response?.data?.message ||
-        JSON.stringify(err?.response?.data) ||
-        err?.message ||
-        "Something went wrong";
-
-      toast.error(errorMessage);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  const isSubmitDisabled =
+    isSubmitting || !facilityId || !serviceCode || !description.trim();
 
   return (
     <div className="care-issue-management-fe-container">
       <div className="mx-auto max-w-2xl w-full px-4 py-6 space-y-5">
-        {/* Header */}
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={goBack}>
             <ChevronLeftIcon className="size-4" />
@@ -164,6 +185,7 @@ const ComplaintCreatePage: FC<ComplaintCreatePageProps> = ({ patientId }) => {
             <h2 className="text-lg font-semibold text-secondary-900">
               {t("new_complaint")}
             </h2>
+
             <p className="text-xs text-secondary-500 mt-0.5">
               {t("create_subtitle")}
             </p>
@@ -172,17 +194,34 @@ const ComplaintCreatePage: FC<ComplaintCreatePageProps> = ({ patientId }) => {
 
         <div className="border-t border-secondary-200" />
 
-        {/* Form Card */}
         <Card>
           <CardContent className="p-5">
             <form onSubmit={handleSubmit}>
               <fieldset disabled={isSubmitting} className="space-y-4">
-                <FacilityDropdown
-                  value={facilityId}
-                  onChange={handleFacilityChange}
-                />
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-secondary-700">
+                    {t("facility")}
+                    <span className="text-red-500 ml-0.5">*</span>
+                  </label>
 
-                {/* Service Code - UPDATED WITH RADIX SELECT */}
+                  <Select
+                    value={facilityId}
+                    onValueChange={handleFacilityChange}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select Facility" />
+                    </SelectTrigger>
+
+                    <SelectContent>
+                      {facilities.map((facility) => (
+                        <SelectItem key={facility.id} value={facility.id}>
+                          {facility.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-secondary-700">
                     {t("complaint_title")}
@@ -212,7 +251,6 @@ const ComplaintCreatePage: FC<ComplaintCreatePageProps> = ({ patientId }) => {
                   </Select>
                 </div>
 
-                {/* Description */}
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-secondary-700">
                     {t("complaint_description")}
@@ -228,7 +266,6 @@ const ComplaintCreatePage: FC<ComplaintCreatePageProps> = ({ patientId }) => {
                   />
                 </div>
 
-                {/* Attachments */}
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-secondary-700">
                     {t("attachments")}
@@ -240,16 +277,10 @@ const ComplaintCreatePage: FC<ComplaintCreatePageProps> = ({ patientId }) => {
                   />
                 </div>
 
-                {/* Submit */}
                 <div className="flex justify-end pt-2">
                   <Button
                     type="submit"
-                    disabled={
-                      isSubmitting ||
-                      !serviceCode ||
-                      !facilityId ||
-                      !description.trim()
-                    }
+                    disabled={isSubmitDisabled}
                     className="gap-1.5"
                   >
                     {isSubmitting ? (

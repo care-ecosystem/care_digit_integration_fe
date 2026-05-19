@@ -1,6 +1,19 @@
-export type PaginatedResponse<T> = {
-  count: number;
-  next: string | null;
-  previous: string | null;
-  results: T[];
+export type options = {
+  formdata?: boolean;
+  external?: boolean;
+  headers?: any;
+  auth?: boolean;
 };
+
+export enum HttpMethod {
+  GET = "GET",
+  POST = "POST",
+  PUT = "PUT",
+  PATCH = "PATCH",
+  DELETE = "DELETE",
+}
+
+export interface PaginatedResponse<T> {
+  count: number;
+  results: T[];
+}

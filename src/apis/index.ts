@@ -1,7 +1,9 @@
 import { request, queryString } from "./request";
-import { PaginatedResponse } from "./types";
+import { HttpMethod, PaginatedResponse } from "./types";
 import { Complaint } from "@/types/complaint";
 import { Facility } from "@/types/facility";
+import { request as request_new } from "./query";
+import { ServiceCodes } from "@/types/service_codes";
 
 export const apis = {
   complaints: {
@@ -97,16 +99,7 @@ export const apis = {
     },
   },
   filestore: {
-    upload: async (files: File[], facilityId: string, workflow: string) => {
-      const formData = new FormData();
-
-      files.forEach((file) => {
-        formData.append("file", file);
-      });
-
-      formData.append("facility_id", facilityId || "");
-      formData.append("workflow", workflow);
-
+    upload: async (formData: FormData) => {
       return await request<{
         files: { fileStoreId: string; tenantId: string }[];
       }>("/api/care_digit_integration/filestore/upload/", {
@@ -115,5 +108,68 @@ export const apis = {
         // skipAuth: true,
       });
     },
+  },
+};
+
+export const apis_new = {
+  complaints: {
+    list: (offset?: number, limit?: number, patient_id?: string) =>
+      request_new<PaginatedResponse<Complaint>>(
+        "/api/care_digit_integration/pgr/complaints/",
+        HttpMethod.GET,
+        { offset, limit, patient_id },
+      ),
+
+    create: (data: any) =>
+      request_new<Complaint>(
+        "/api/care_digit_integration/pgr/complaints/",
+        HttpMethod.POST,
+        data,
+      ),
+  },
+
+  serviceCodes: {
+    list: (facility_id: string, workflow: string) =>
+      request_new<ServiceCodes>(
+        "/api/care_digit_integration/internal/service-codes/",
+        HttpMethod.GET,
+        { facility_id, workflow },
+      ).then((res) => res?.service_codes ?? []),
+  },
+
+  filestore: {
+    upload: (formData: FormData) =>
+      request_new<{
+        files: {
+          fileStoreId: string;
+          tenantId: string;
+        }[];
+      }>(
+        "/api/care_digit_integration/filestore/upload/",
+        HttpMethod.POST,
+        formData,
+        {
+          formdata: true,
+        },
+      ),
+  },
+  facilities: {
+    list: () =>
+      request_new<{
+        results: { facility: Facility }[];
+      }>("/api/v1/otp/slots/get_appointments/", HttpMethod.GET).then((res) => {
+        const uniqueFacilities = Array.from(
+          new Map(
+            (res.results ?? []).map((item: { facility: Facility }) => [
+              item.facility.id,
+              item.facility,
+            ]),
+          ).values(),
+        );
+
+        return {
+          results: uniqueFacilities,
+        };
+      }),
   },
 };

@@ -70,13 +70,6 @@ export default function IssueListPopup({ onClose }: { onClose: () => void }) {
         return "bg-gray-100 text-gray-700";
     }
   };
-  const SERVICE_CODE_LABELS: Record<string, string> = {
-    TechnicalIssues: t("Technical Issues"),
-    Other: t("other"),
-    PerformanceIssue: t("Performance Issue"),
-    Data: t("Data Issue"),
-    SecurityIssues: t("Security Issues"),
-  };
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white rounded-xl p-6 w-[900px] max-w-full shadow-2xl relative">
@@ -121,8 +114,7 @@ export default function IssueListPopup({ onClose }: { onClose: () => void }) {
                       <td className="p-2">{item.pgr_ticket_id || "-"}</td>
 
                       <td className="p-2">
-                        {SERVICE_CODE_LABELS[item.service_code] ||
-                          item.service_code}
+                        {t(item.service_code, item.service_code)}
                       </td>
 
                       {/* :red_circle: CHANGE 6: WORKFLOW TRANSLATED */}

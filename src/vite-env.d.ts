@@ -23,6 +23,7 @@ declare global {
 
   interface Window {
     __CARE_PLUGIN_RUNTIME__?: CarePluginRuntime;
+    CARE_API_URL: string;
   }
 }
 

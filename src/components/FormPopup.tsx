@@ -13,7 +13,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { I18NNAMESPACE } from "@/lib/constants";
-import { apis_new } from "@/apis";
+import { apis } from "@/apis";
 import type { ServiceCode, Workflow } from "@/types/complaint";
 
 interface FormPopupProps {
@@ -91,7 +91,7 @@ export default function FormPopup({
 
   const { data: issueOptions = [] } = useQuery({
     queryKey: ["service-codes", facilityId],
-    queryFn: () => apis_new.serviceCodes.list(facilityId!, "system"),
+    queryFn: () => apis.serviceCodes.list(facilityId!, "system"),
     enabled: !!facilityId,
   });
 
@@ -151,7 +151,7 @@ export default function FormPopup({
           formData.append("file", file);
           formData.append("tenantId", "mz");
           formData.append("module", "care-pgr");
-          return apis_new.filestore.upload(formData);
+          return apis.filestore.upload(formData);
         }),
       );
 
@@ -160,7 +160,7 @@ export default function FormPopup({
         .filter((f) => f?.fileStoreId)
         .map((f) => ({ fileStoreId: f.fileStoreId, tenantId: f.tenantId }));
 
-      await apis_new.complaints.create({
+      await apis.complaints.create({
         facility: facilityId,
         workflow: WORKFLOW,
         service_code: serviceCode,

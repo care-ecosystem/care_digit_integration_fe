@@ -13,7 +13,7 @@ export type ServiceCode =
   | "Data"
   | "SecurityIssues";
 
-export type Workflow = "SYSTEM" | "HEALTHSERVICE";
+export type Workflow = "system" | "healthservice";
 
 export type Complaint = {
   id: string;

@@ -8,7 +8,7 @@ export default defineConfig({
   // base: "http://localhost:5173/",
   plugins: [
     federation({
-      name: "care_issue_management",
+      name: "care_digit_integration",
       filename: "remoteEntry.js",
       exposes: {
         "./manifest": "./src/manifest.tsx",

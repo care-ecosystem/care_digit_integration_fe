@@ -9,12 +9,12 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "./components/ui/popover";
+} from "@/components/ui/popover";
 import { useState } from "react";
-import { Button } from "./components/ui/button";
-import { useScreenCapture } from "./hooks/useScreenCapture";
-import FormPopup from "./FormPopup";
-import IssueListPopup from "./IssueListPopup";
+import { Button } from "@/components/ui/button";
+import { useScreenCapture } from "@/hooks/useScreenCapture";
+import FormPopup from "@/components/FormPopup";
+import IssueListPopup from "@/components/IssueListPopup";
 
 function IssueManagementWidget({
   onCaptureCB,

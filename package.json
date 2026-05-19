@@ -1,5 +1,5 @@
 {
-  "name": "care_issue_management_fe",
+  "name": "care_digit_integration_fe",
   "version": "1.0.0",
   "description": "",
   "main": "src/index.ts",
@@ -11,15 +11,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/pranavrutagi-egov/care_issue_management_fe.git"
+    "url": "git+https://github.com/care-ecosystem/care_digit_integration_fe.git"
   },
   "author": "",
   "license": "ISC",
   "type": "module",
   "bugs": {
-    "url": "https://github.com/pranavrutagi-egov/care_issue_management_fe/issues"
+    "url": "https://github.com/care-ecosystem/care_digit_integration_fe/issues"
   },
-  "homepage": "https://github.com/pranavrutagi-egov/care_issue_management_fe#readme",
+  "homepage": "https://github.com/care-ecosystem/care_digit_integration_fe#readme",
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [
       "prettier --write --ignore-unknown --plugin prettier-plugin-tailwindcss",

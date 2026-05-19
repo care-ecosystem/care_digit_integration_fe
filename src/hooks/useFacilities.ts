@@ -1,4 +1,4 @@
-import { apis_new } from "@/apis";
+import { apis } from "@/apis";
 import { Facility } from "@/types/facility";
 import { useQuery } from "@tanstack/react-query";
 
@@ -9,7 +9,7 @@ interface UseFacilitiesOptions {
 export function useFacilities({ search = "" }: UseFacilitiesOptions = {}) {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["facilities"],
-    queryFn: apis_new.facilities.list,
+    queryFn: apis.facilities.list,
     staleTime: 5 * 60 * 1000,
   });
 

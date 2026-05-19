@@ -11,7 +11,7 @@ import { useTranslation } from "react-i18next";
 import { navigate } from "raviger";
 import { Button } from "@/components/ui/button";
 import { I18NNAMESPACE } from "@/lib/constants";
-import { apis, apis_new } from "@/apis";
+import { apis } from "@/apis";
 import type { Complaint } from "@/types/complaint";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -73,7 +73,7 @@ const ComplaintListPage: FC<ComplaintListPageProps> = ({ patientId }) => {
 
   const { data, isLoading, isError, isFetching } = useQuery({
     queryKey: ["complaints", patientId, page],
-    queryFn: () => apis_new.complaints.list(offset, limit, patientId),
+    queryFn: () => apis.complaints.list(offset, limit, patientId),
   });
 
   const totalPages = data?.count ? Math.ceil(data.count / 10) : 1;

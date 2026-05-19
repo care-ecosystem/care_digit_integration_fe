@@ -10,9 +10,9 @@ import { useFacilities } from "@/hooks/useFacilities";
 import {
   FileUploadZone,
   FilePreview,
-} from "@/components/common/FileUploadZone";
+} from "@/components/FileUploadZone";
 import { I18NNAMESPACE } from "@/lib/constants";
-import { apis_new, apis } from "@/apis";
+import { apis } from "@/apis";
 import { Card, CardContent } from "@/components/ui/card";
 
 import {
@@ -63,7 +63,7 @@ const createComplaint = async ({
     formData.append("facility_id", facilityId);
     formData.append("workflow", "healthservice");
 
-    const uploadRes = await apis_new.filestore.upload(formData);
+    const uploadRes = await apis.filestore.upload(formData);
 
     if (!uploadRes?.files?.length) {
       throw new Error("File upload failed");
@@ -75,7 +75,7 @@ const createComplaint = async ({
     }));
   }
 
-  return apis_new.complaints.create({
+  return apis.complaints.create({
     facility: facilityId,
     reporter: patientId,
     workflow: "healthservice",
@@ -104,7 +104,7 @@ const ComplaintCreatePage: FC<ComplaintCreatePageProps> = ({ patientId }) => {
 
   const { data: serviceCodes = [], isLoading: loadingCodes } = useQuery({
     queryKey: ["service-codes", facilityId],
-    queryFn: () => apis_new.serviceCodes.list(facilityId, "healthservice"),
+    queryFn: () => apis.serviceCodes.list(facilityId, "healthservice"),
     enabled: !!facilityId,
   });
 

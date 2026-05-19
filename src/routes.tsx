@@ -1,6 +1,6 @@
-import ComplaintHomePage from "./components/pages/ComplaintHomePage";
-import ComplaintCreatePage from "./components/pages/ComplaintCreatePage";
-import ComplaintListPage from "./components/pages/ComplaintListPage";
+import ComplaintHomePage from "@/components/pages/ComplaintHomePage";
+import ComplaintCreatePage from "@/components/pages/ComplaintCreatePage";
+import ComplaintListPage from "@/components/pages/ComplaintListPage";
 
 const routes = {
   "/patient/:id/complaints": ({ id }: { id: string }) => (

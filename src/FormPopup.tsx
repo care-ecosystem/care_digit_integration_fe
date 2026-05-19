@@ -14,7 +14,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { I18NNAMESPACE } from "@/lib/constants";
 import { apis_new } from "@/apis";
-import type { ServiceCode, ServiceCodeOption, Workflow } from "@/types/complaint";
+import type { ServiceCode, Workflow } from "@/types/complaint";
 
 interface FormPopupProps {
   onClose: () => void;
@@ -35,18 +35,13 @@ const ALLOWED_TYPES = new Set([
 
 const WORKFLOW: Workflow = "system";
 
-const SERVICE_CODE_OPTIONS: ServiceCodeOption[] = [
-  { code: "TechnicalIssues", name: "Technical Issues" },
-  { code: "PerformanceIssue", name: "Performance Issue" },
-  { code: "Other", name: "Other" },
-  { code: "Data", name: "Data Issue" },
-  { code: "SecurityIssues", name: "Security Issues" },
-];
-
-// Derived lookup map — typed against ServiceCode so it stays in sync
-const SERVICE_CODE_LABEL: Record<ServiceCode, string> = Object.fromEntries(
-  SERVICE_CODE_OPTIONS.map((o) => [o.code, o.name]),
-) as Record<ServiceCode, string>;
+const ISSUE_LABELS: Record<string, string> = {
+  TechnicalIssues: "Technical Issues",
+  Other: "Other",
+  PerformanceIssue: "Performance Issue",
+  Data: "Data Issue",
+  SecurityIssues: "Security Issues",
+};
 
 function usePluginFacilityId(): string | undefined {
   if (typeof window === "undefined") return undefined;
@@ -99,11 +94,6 @@ export default function FormPopup({
     queryFn: () => apis_new.serviceCodes.list(facilityId!, "system"),
     enabled: !!facilityId,
   });
-
-  // Only show options the API says are available for this facility
-  const availableOptions = SERVICE_CODE_OPTIONS.filter((o) =>
-    issueOptions.includes(o.code),
-  );
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
@@ -220,9 +210,9 @@ export default function FormPopup({
                 <SelectValue placeholder={t("title_placeholder")} />
               </SelectTrigger>
               <SelectContent>
-                {availableOptions.map((option: ServiceCodeOption) => (
-                  <SelectItem key={option.code} value={option.code}>
-                    {t(option.name)}
+                {issueOptions.map((issue) => (
+                  <SelectItem key={issue} value={issue}>
+                    {t(ISSUE_LABELS[issue] ?? issue)}
                   </SelectItem>
                 ))}
               </SelectContent>

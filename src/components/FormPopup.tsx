@@ -35,14 +35,6 @@ const ALLOWED_TYPES = new Set([
 
 const WORKFLOW: Workflow = "system";
 
-const ISSUE_LABELS: Record<string, string> = {
-  TechnicalIssues: "Technical Issues",
-  Other: "Other",
-  PerformanceIssue: "Performance Issue",
-  Data: "Data Issue",
-  SecurityIssues: "Security Issues",
-};
-
 function usePluginFacilityId(): string | undefined {
   if (typeof window === "undefined") return undefined;
   const segments = window.location.pathname.split("/");
@@ -149,8 +141,8 @@ export default function FormPopup({
         allFiles.map((file) => {
           const formData = new FormData();
           formData.append("file", file);
-          formData.append("tenantId", "mz");
-          formData.append("module", "care-pgr");
+          formData.append("facility_id", facilityId!);
+          formData.append("workflow", WORKFLOW);
           return apis.filestore.upload(formData);
         }),
       );
@@ -212,7 +204,7 @@ export default function FormPopup({
               <SelectContent>
                 {issueOptions.map((issue) => (
                   <SelectItem key={issue} value={issue}>
-                    {t(ISSUE_LABELS[issue] ?? issue)}
+                    {t(issue)}
                   </SelectItem>
                 ))}
               </SelectContent>

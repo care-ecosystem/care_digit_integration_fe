@@ -9,6 +9,9 @@ const manifest = {
   extends: [],
   components: {
     CareIssueManagementWidget: lazy(() => import("@/providers")),
+    KioskComplaintPage: lazy(
+      () => import("@/components/pages/KioskComplaintPage"),
+    ),
   },
   navItems: [],
   i18n: {

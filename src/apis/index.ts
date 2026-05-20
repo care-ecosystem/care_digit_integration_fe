@@ -3,6 +3,7 @@ import { Complaint } from "@/types/complaint";
 import { Facility } from "@/types/facility";
 import { request } from "@/apis/query";
 import { ServiceCodes } from "@/types/service_codes";
+import { Encounter } from "@/types/kiosk";
 
 export const apis = {
   complaints: {
@@ -22,14 +23,45 @@ export const apis = {
   },
 
   serviceCodes: {
-    list: (facility_id: string, workflow: string) =>
+    list: (
+      facility_id: string,
+      workflow: string,
+      encounter_id?: string,
+      birth_year?: string,
+      phone_number?: string,
+      auth_type?: "encounter_based",
+    ) =>
       request<ServiceCodes>(
         "/api/care_digit_integration/internal/service-codes/",
         HttpMethod.GET,
-        { facility_id, workflow },
+        {
+          facility_id,
+          workflow,
+          encounter_id,
+          birth_year,
+          phone_number,
+          auth_type,
+        },
       ).then((res) => res?.service_codes ?? []),
   },
 
+  encounters: {
+    list: async (
+      encounter_id: string,
+      birth_year?: string,
+      phone_number?: string,
+    ) => {
+      return await request<Encounter[]>(
+        "/api/care_communication/kiosk/encounters/",
+        HttpMethod.GET,
+        {
+          encounter_id,
+          birth_year,
+          phone_number,
+        },
+      );
+    },
+  },
   filestore: {
     upload: (formData: FormData) =>
       request<{

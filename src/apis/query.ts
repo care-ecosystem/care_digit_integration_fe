@@ -38,7 +38,10 @@ export const request = async <T>(
     const requestParams = data
       ? `?${Object.keys(data)
           .filter((key) => data[key] !== null && data[key] !== undefined)
-          .map((key) => `${key}=${data[key]}`)
+          .map(
+            (key) =>
+              `${encodeURIComponent(key)}=${encodeURIComponent(data[key])}`,
+          )
           .join("&")}`
       : "";
     url += requestParams;

@@ -8,11 +8,3 @@ export function cn(...inputs: ClassValue[]) {
 export function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
-
-export const getToken = (): string | null => {
-  try {
-    return localStorage.getItem("care_access_token");
-  } catch {
-    return null;
-  }
-};

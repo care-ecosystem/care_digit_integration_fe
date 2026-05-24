@@ -1,1 +1,1 @@
-export const I18NNAMESPACE = "care_issue_management";
+export const I18NNAMESPACE = "care_digit_integration";

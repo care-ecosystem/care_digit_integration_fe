@@ -5,9 +5,10 @@ import react from "@vitejs/plugin-react-swc";
 import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
+  // base: "http://localhost:5173/",
   plugins: [
     federation({
-      name: "care_issue_management",
+      name: "care_digit_integration",
       filename: "remoteEntry.js",
       exposes: {
         "./manifest": "./src/manifest.tsx",
@@ -44,7 +45,7 @@ export default defineConfig({
     },
   },
   server: {
-    port: 5173,
+    port: 5174,
     host: "0.0.0.0",
     cors: true,
     headers: {
@@ -54,7 +55,7 @@ export default defineConfig({
     },
   },
   preview: {
-    port: 5173,
+    port: 5174,
     allowedHosts: true,
     host: "0.0.0.0",
     cors: true,

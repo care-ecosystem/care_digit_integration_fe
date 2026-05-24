@@ -9,12 +9,12 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "./components/ui/popover";
+} from "@/components/ui/popover";
 import { useState } from "react";
-import { Button } from "./components/ui/button";
-import { useScreenCapture } from "./hooks/useScreenCapture";
-import FormPopup from "./FormPopup";
-import IssueListPopup from "./IssueListPopup";
+import { Button } from "@/components/ui/button";
+import { useScreenCapture } from "@/hooks/useScreenCapture";
+import FormPopup from "@/components/FormPopup";
+import IssueListPopup from "@/components/IssueListPopup";
 
 function IssueManagementWidget({
   onCaptureCB,
@@ -77,7 +77,7 @@ export default function App() {
   const [isIssueListOpen, setIsIssueListOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
 
-  // ✅ lifted up — survives close/reopen
+  // :white_check_mark: lifted up — survives close/reopen
   const [files, setFiles] = useState<File[]>([]);
   const [capturedScreenshots, setCapturedScreenshots] = useState<string[]>([]);
 
@@ -93,7 +93,7 @@ export default function App() {
   const handleFormClose = () => setIsFormOpen(false);
 
   const handleFormSubmitSuccess = () => {
-    // ✅ only clear after successful submit (called from FormPopup)
+    // :white_check_mark: only clear after successful submit (called from FormPopup)
     setFiles([]);
     setCapturedScreenshots([]);
     setIsFormOpen(false);
@@ -104,10 +104,10 @@ export default function App() {
       <Toaster position="top-right" richColors expand theme="light" />
 
       <IssueManagementWidget
-  onCaptureCB={handleCaptureScreenShot}
-  onOpenForm={() => setIsFormOpen(true)}
-  onOpenIssueList={() => setIsIssueListOpen(true)}
-/>
+        onCaptureCB={handleCaptureScreenShot}
+        onOpenForm={() => setIsFormOpen(true)}
+        onOpenIssueList={() => setIsIssueListOpen(true)}
+      />
 
       {isFormOpen && (
         <FormPopup
@@ -120,8 +120,8 @@ export default function App() {
         />
       )}
       {isIssueListOpen && (
-  <IssueListPopup onClose={() => setIsIssueListOpen(false)} />
-)}
+        <IssueListPopup onClose={() => setIsIssueListOpen(false)} />
+      )}
     </div>
   );
 }
